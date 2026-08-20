@@ -18,6 +18,7 @@ data/cuts/*
 .quarto/
 _site/
 build/
+reports/*.html
 .DS_Store
 
 # local bootstrap scaffolding, not part of the specified repo structure

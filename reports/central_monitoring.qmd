@@ -1,0 +1,259 @@
+---
+title: "Central data monitoring report"
+subtitle: "Coordinating centre view — Synthetic Adaptive Platform Trial in Critical Illness"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    embed-resources: true
+    fig-width: 9
+    fig-height: 4.5
+    code-fold: true
+    code-summary: "Show the code behind this section"
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+suppressMessages({
+  library(dplyr)
+  library(ggplot2)
+  library(targets)
+})
+
+ROOT <- normalizePath("..", winslash = "/")
+for (file in list.files(file.path(ROOT, "R"), pattern = "[.]R$",
+                        recursive = TRUE, full.names = TRUE)) {
+  source(file)
+}
+store <- file.path(ROOT, "_targets")
+
+cfg <- load_trial_config()
+sites <- resolve_sites(cfg)
+
+forms        <- tar_read(conformed_forms, store = store)
+findings     <- tar_read(findings, store = store)
+endpoint     <- tar_read(dawols, store = store)
+recall       <- tar_read(recall_table, store = store)
+recall_total <- tar_read(recall_summary, store = store)
+conformance  <- tar_read(conformance_log, store = store)
+unmatched    <- tar_read(unmatched_findings, store = store)
+
+completeness <- tar_read(monthly_completeness, store = store)
+timeliness   <- tar_read(monthly_timeliness, store = store)
+drift        <- tar_read(delay_drift, store = store)
+attention    <- tar_read(attention_list, store = store)
+
+house_theme <- theme_minimal(base_size = 11) +
+  theme(panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = 12),
+        plot.subtitle = element_text(colour = "grey35", size = 10),
+        legend.position = "bottom")
+
+participants <- n_distinct(forms$randomisation$participant_id)
+```
+
+::: {.callout-note appearance="simple"}
+`r participants` participants · `r nrow(forms$randomisation)` randomisations ·
+`r nrow(sites)` sites in `r length(unique(sites$country))` countries ·
+rule set `r rule_set_version()` ·
+generated `r format(Sys.Date(), "%d %B %Y")`
+:::
+
+# Sites needing attention
+
+Ordered by entry-delay drift, then by critical findings. Deliberately **not** a
+single composite score: a score hides which of the three problems a site has,
+and the coordinating centre needs to know which call to make.
+
+```{r attention}
+top <- attention |>
+  head(10) |>
+  transmute(Site = site_id, Name = site_name, Country = country,
+            `Critical findings` = critical_findings,
+            `Endpoint records` = records,
+            `Not evaluable` = not_evaluable,
+            `% incomplete` = pct_incomplete,
+            `Drift (days/month)` = slope_days_per_month)
+knitr::kable(top)
+```
+
+# Entry-delay drift
+
+No validation rule catches drift. Every record at a drifting site is perfectly
+valid — it was simply entered late, which is not a rule violation. Only the
+trend across months shows a site falling further behind, and only measuring it
+against each site's **own** initiation shows that it is not merely a young site
+still settling in.
+
+```{r drift-plot}
+drift_plot <- drift |>
+  mutate(site_id = factor(site_id, levels = rev(site_id)),
+         flagged = slope_days_per_month > 0.5)
+
+ggplot(drift_plot, aes(site_id, slope_days_per_month, fill = flagged)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c("FALSE" = "#4C72B0", "TRUE" = "#C44E52"),
+                    labels = c("Within expectation", "Investigate"), name = NULL) +
+  labs(title = "Change in median data entry delay, per month since site initiation",
+       subtitle = "Positive means the site is getting slower over time",
+       x = NULL, y = "Days added per month") +
+  house_theme
+```
+
+```{r drift-detail}
+worst <- drift$site_id[1]
+worst_monthly <- timeliness |>
+  filter(site_id %in% c(worst)) |>
+  group_by(month) |>
+  summarise(median_delay = median(median_delay_days), .groups = "drop")
+
+ggplot(worst_monthly, aes(month, median_delay)) +
+  geom_line(colour = "#C44E52", linewidth = 0.9) +
+  geom_point(colour = "#C44E52", size = 2) +
+  scale_x_date(date_labels = "%b %Y") +
+  labs(title = paste("Median entry delay at", worst),
+       subtitle = paste0("The site with the steepest drift: ",
+                         drift$first_median_days[1], " days rising to ",
+                         drift$last_median_days[1], " days"),
+       x = NULL, y = "Median days from event to entry") +
+  house_theme
+```
+
+# Findings across the trial
+
+```{r findings-overall}
+by_rule <- findings_by_rule(findings)
+knitr::kable(
+  by_rule |>
+    transmute(Rule = rule_id, Name = rule_name, Severity = severity,
+              Form = form, Findings = findings, Participants = participants,
+              Sites = sites)
+)
+```
+
+```{r findings-by-site-plot}
+by_site <- findings |>
+  filter(severity == "critical") |>
+  count(site_id, name = "critical") |>
+  right_join(sites[, c("site_id", "country")], by = "site_id") |>
+  mutate(critical = coalesce(critical, 0L)) |>
+  arrange(desc(critical))
+
+ggplot(by_site, aes(reorder(site_id, critical), critical, fill = country)) +
+  geom_col() +
+  coord_flip() +
+  labs(title = "Critical findings by site",
+       subtitle = "Raw counts. Larger sites will have more; read alongside the per-site reports.",
+       x = NULL, y = "Critical findings", fill = NULL) +
+  house_theme
+```
+
+# How well do the rules actually work?
+
+The validation engine is scored against a catalogue of defects deliberately
+injected into the data, so its performance is measured rather than asserted.
+
+```{r recall}
+recall_display <- recall |>
+  transmute(Defect = defect_id, Name = defect_name,
+            `Expected rule` = expected_rule_id,
+            Injected = injected, Detected = detected,
+            Recall = ifelse(is.na(recall), "n/a", sprintf("%.1f%%", 100 * recall)))
+knitr::kable(recall_display)
+```
+
+**Overall: `r sprintf("%.1f%%", 100 * recall_total$recall)`** —
+`r recall_total$detected` of `r recall_total$scoreable_by_a_rule` defect records
+that a rule targets.
+
+A further **`r recall_total$not_scoreable_monitoring_signals` records** belong to
+defect types that **no rule in this milestone targets**. They are reported as
+`n/a` rather than as 0%, because scoring a rule set against defects it was never
+written to catch would misrepresent it, and omitting them would misrepresent the
+defect catalogue. These are the statistical signals — entry drift, terminal-digit
+preference, adverse-event under-reporting — and the drift section above is the
+first of them to be addressed.
+
+## Findings not traceable to an injected defect
+
+Not the same as false positives. A finding with no matching injected defect is
+usually a genuine problem the simulation created incidentally, or a real
+ambiguity in the data model.
+
+```{r unmatched}
+knitr::kable(
+  unmatched |>
+    arrange(desc(not_traceable)) |>
+    transmute(Rule = rule_id, Name = rule_name, Severity = severity,
+              Findings = findings,
+              `Traceable to injection` = traceable_to_injected_defect,
+              `Not traceable` = not_traceable)
+)
+```
+
+`LOG-001` is the clearest example. No form in this trial carries an ICU
+discharge date, so a gap in daily records caused by discharge and readmission is
+indistinguishable from a gap caused by missing data entry. Querying both is what
+a data manager would actually do, and the fix is a schema change rather than a
+rule change.
+
+# What the ingest layer had to undo
+
+Every transformation applied between the site's export and the analysis dataset
+is logged. This table is the evidence of what was done to the data.
+
+```{r conformance}
+knitr::kable(
+  conformance_summary(conformance) |>
+    transmute(Transformation = transformation, Sites = sites,
+              `Log entries` = rows, `Values affected` = values)
+)
+```
+
+# Primary endpoint completeness by site
+
+A day with no daily record counts as **unknown**, never as a day free of life
+support. Missing records therefore understate the endpoint. The percentage
+incomplete is a direct measure of how much each site's data is degrading the
+outcome the trial exists to measure.
+
+```{r endpoint-by-site}
+endpoint_site <- endpoint |>
+  group_by(site_id) |>
+  summarise(records = n(),
+            not_evaluable = sum(is.na(days_alive_without_life_support)),
+            pct_incomplete = 100 * mean(!complete),
+            .groups = "drop") |>
+  arrange(desc(pct_incomplete))
+
+ggplot(endpoint_site, aes(reorder(site_id, pct_incomplete), pct_incomplete)) +
+  geom_col(fill = "#4C72B0") +
+  coord_flip() +
+  labs(title = "Proportion of endpoint records with at least one unknown day",
+       subtitle = "Every unknown day understates days alive without life support",
+       x = NULL, y = "% incomplete") +
+  house_theme
+```
+
+```{r endpoint-overall}
+knitr::kable(summarise_dawols(endpoint))
+```
+
+The mean over all records and the mean over complete records differ. That
+difference is not a rounding detail: it is larger than the one-day margin the
+analysis plan uses to declare two arms practically equivalent, which is why the
+endpoint reports its own completeness rather than returning a single number.
+
+---
+
+::: {.callout-warning appearance="simple"}
+All data in this report is **synthetic**, generated by the code in this
+repository from a fixed seed. Site names are invented. This is an independent
+educational project with no affiliation to any real trial, hospital or research
+group.
+:::

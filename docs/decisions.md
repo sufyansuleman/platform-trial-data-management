@@ -361,3 +361,58 @@ counted and reported as not evaluable, which on current data is 99 of 3,058 reco
 **Rejected alternative.** Impute the unknown days from surrounding days. It would produce
 a complete-looking dataset whose completeness is manufactured, and it would remove the one
 signal that tells a coordinator which site to call.
+
+---
+
+## 2026-08-20 — DEC-015: monitoring reports are self-contained and rendered in parallel
+
+**Decision.** Every report embeds its own resources (`embed-resources: true`) and the 25
+site reports are rendered across four worker processes, each working on its own copy of
+the document.
+
+**Reasoning.** Rendered serially, 25 site reports plus the central report took **seven
+minutes**, against a five-minute budget for the whole clean-machine run in the
+specification's definition of done. Almost all of that time is per-render R startup —
+loading packages and sourcing `R/` — so the work parallelises nearly linearly. Four
+workers brought it to **3.6 minutes**.
+
+Self-containment costs about three seconds per report and takes the total to 52 MB, and
+is kept anyway for two reasons. A self-contained report is a single file that can be
+emailed to a site coordinator, which is how monitoring reports actually reach the people
+who act on them. And it avoids parallel renders colliding over a shared supporting-files
+directory.
+
+Each worker renders a copy of the document rather than the original: Quarto names its
+intermediate working files after the input, so several processes rendering the same
+`.qmd` simultaneously overwrite each other and fail. That failure is immediate and loud
+rather than subtle, but the fix is worth recording because it is not obvious from the
+error message.
+
+**Also moved.** The monthly completeness and timeliness metrics are computed once as
+pipeline targets rather than inside each report. Every site report needs the all-site
+picture to compare against, so computing it per report meant doing identical work 25
+times.
+
+---
+
+## 2026-08-20 — DEC-016: site comparison is normalised by time since initiation
+
+**Decision.** Wherever a site is compared against the others, the horizontal axis is
+months since **that site's own initiation**, not calendar time.
+
+**Reasoning.** Sites opened across a 13-month span: 15 Danish sites from January 2024, and
+the Dutch, Swedish, Finnish and Icelandic sites from October 2024 onward. On a calendar
+axis a site in its second month is set against sites in their twentieth, and the young
+site looks worse at everything — fewer participants, less complete follow-up, shorter
+history. That comparison is unfair and, worse, useless: everyone already knows the site is
+new, so the chart carries no information a coordinator can act on.
+
+Comparing each site against every other site *at the same stage of participation* asks the
+question that actually matters: is this site doing worse than others did when they were
+this old? The interquartile band across all sites at each month since initiation gives the
+reference.
+
+The same normalisation is what makes the entry-delay drift signal legible. SE-02's median
+delay rises from 9 days to 26 over 13 months, a slope of 1.69 days per month against 0.18
+for the next worst site. On a calendar axis that trend is confounded with the site being
+younger than the Danish cohort; against its own initiation it is unmistakable.

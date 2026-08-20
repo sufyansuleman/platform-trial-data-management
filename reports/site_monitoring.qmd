@@ -1,0 +1,297 @@
+---
+title: "Site data monitoring report"
+subtitle: "Synthetic Adaptive Platform Trial in Critical Illness"
+params:
+  site_id: "DK-01"
+format:
+  html:
+    theme: cosmo
+    toc: true
+    toc-depth: 2
+    embed-resources: true
+    fig-width: 9
+    fig-height: 4
+    code-fold: true
+    code-summary: "Show the code behind this section"
+execute:
+  echo: false
+  warning: false
+  message: false
+---
+
+```{r setup}
+suppressMessages({
+  library(dplyr)
+  library(ggplot2)
+  library(targets)
+})
+
+# The report renders from reports/, so everything is resolved against the
+# project root rather than the working directory.
+ROOT <- normalizePath("..", winslash = "/")
+for (file in list.files(file.path(ROOT, "R"), pattern = "[.]R$",
+                        recursive = TRUE, full.names = TRUE)) {
+  source(file)
+}
+store <- file.path(ROOT, "_targets")
+
+site_id <- params$site_id
+cfg <- load_trial_config()
+sites <- resolve_sites(cfg)
+site <- sites[sites$site_id == site_id, ]
+stopifnot(nrow(site) == 1)
+
+forms      <- tar_read(conformed_forms, store = store)
+findings   <- tar_read(findings, store = store)
+endpoint   <- tar_read(dawols, store = store)
+
+# Precomputed by the pipeline: every site report needs the all-site picture to
+# compare against, and recomputing it per report is the same work 25 times.
+completeness <- tar_read(monthly_completeness, store = store)
+timeliness   <- tar_read(monthly_timeliness, store = store)
+
+site_completeness <- completeness |> filter(site_id == !!site_id)
+site_timeliness   <- timeliness   |> filter(site_id == !!site_id)
+site_finding_rows <- site_findings_detail(findings, site_id)
+site_endpoint     <- endpoint |> filter(site_id == !!site_id)
+
+# "Recent" means the last six months of data this site actually has, not the
+# last six calendar months, so a site that has paused enrolment still gets a
+# readable trend rather than an empty chart.
+recent_months <- sort(unique(site_completeness$month))
+recent_months <- tail(recent_months, 6)
+recent_completeness <- site_completeness |> filter(month %in% recent_months)
+
+months_open <- floor(as.numeric(Sys.Date() - site$initiation_date) / 30.44)
+
+plural <- function(n, singular, plural_form = paste0(singular, "s")) {
+  if (is.na(n)) return("")
+  paste(n, if (n == 1) singular else plural_form)
+}
+
+house_theme <- theme_minimal(base_size = 11) +
+  theme(panel.grid.minor = element_blank(),
+        plot.title = element_text(face = "bold", size = 12),
+        plot.subtitle = element_text(colour = "grey35", size = 10),
+        legend.position = "bottom")
+```
+
+::: {.callout-note appearance="simple"}
+**`r site$site_name`** (`r site_id`), `r site$country_name`.
+Initiated `r format(site$initiation_date, "%d %B %Y")`, `r months_open` months ago.
+Report generated `r format(Sys.Date(), "%d %B %Y")` from data version
+`r if (nrow(findings)) findings$data_version[1] else "working"`,
+rule set `r rule_set_version()`.
+:::
+
+# What to do this week
+
+```{r actions}
+actions <- site_actions(site_finding_rows, site_endpoint, site_completeness)
+```
+
+`r if (!nrow(actions)) "**Nothing outstanding.** No critical findings, no unevaluable endpoints, and no falling completeness trend at this site."`
+
+```{r actions-list, results="asis"}
+if (nrow(actions)) {
+  for (i in seq_len(nrow(actions))) {
+    count <- if (is.na(actions$records[i])) "" else
+      paste0(" — **", plural(actions$records[i], "record"), "**")
+    cat(sprintf("%d. **%s**%s  \n    %s\n\n",
+                actions$priority[i], actions$action[i], count, actions$why[i]))
+  }
+}
+```
+
+> This list is the report. Everything below it is the evidence behind these
+> items, and exists so that a query can be answered with "here is why we are
+> asking" rather than "the system flagged it".
+
+# Open findings
+
+```{r findings-summary}
+if (nrow(site_finding_rows)) {
+  summary_table <- site_finding_rows |>
+    group_by(severity, rule_id, rule_name) |>
+    summarise(findings = n(), participants = n_distinct(participant_id),
+              .groups = "drop") |>
+    arrange(severity, desc(findings))
+  knitr::kable(summary_table, col.names = c("Severity", "Rule", "Name",
+                                           "Findings", "Participants"))
+} else {
+  cat("No open findings at this site.")
+}
+```
+
+## Participants to follow up
+
+Critical findings only, with the identifiers needed to act on them.
+
+```{r findings-detail}
+critical <- site_finding_rows |> filter(severity == "critical")
+if (nrow(critical)) {
+  detail <- critical |>
+    select(rule_id, participant_id, domain, form, field, observed_value) |>
+    arrange(rule_id, participant_id) |>
+    head(50)
+  knitr::kable(detail, col.names = c("Rule", "Participant", "Domain", "Form",
+                                     "Field", "Observed value"))
+  if (nrow(critical) > 50) {
+    cat("\n\n*Showing the first 50 of ", nrow(critical), " critical findings.*", sep = "")
+  }
+} else {
+  cat("No critical findings at this site.")
+}
+```
+
+# Completeness
+
+Proportion of required, human-entered fields carrying a value, by the month of
+the clinical event. Identifiers and system-stamped dates are excluded: they are
+always present and would flatter the measure.
+
+```{r completeness-trend}
+if (nrow(recent_completeness)) {
+  ggplot(recent_completeness, aes(month, completeness, colour = form)) +
+    geom_line(linewidth = 0.7) +
+    geom_point(size = 1.8) +
+    scale_y_continuous(labels = scales::percent, limits = c(NA, 1)) +
+    scale_x_date(date_labels = "%b %Y") +
+    labs(title = "Completeness over the last six months of activity",
+         subtitle = "A falling line is a process problem; a low flat line is a backlog",
+         x = NULL, y = "Fields complete", colour = NULL) +
+    house_theme
+} else {
+  cat("No completeness data for this site.")
+}
+```
+
+```{r completeness-table}
+if (nrow(recent_completeness)) {
+  table_data <- recent_completeness |>
+    mutate(month = format(month, "%b %Y"),
+           completeness = sprintf("%.1f%%", 100 * completeness)) |>
+    select(form, month, records, completeness) |>
+    tidyr::pivot_wider(names_from = month, values_from = completeness,
+                       id_cols = form)
+  knitr::kable(table_data)
+}
+```
+
+# Timeliness
+
+Days from the clinical event to entry into the EDC. Read this against the
+holiday column: entry slows around local public holidays in every country, and
+a report that ignores that generates queries nobody can act on.
+
+```{r timeliness-trend}
+site_monthly_delay <- site_timeliness |>
+  group_by(month) |>
+  summarise(median_delay = median(median_delay_days),
+            p90 = max(p90_delay_days),
+            holiday_affected = max(holiday_affected), .groups = "drop")
+
+if (nrow(site_monthly_delay)) {
+  ggplot(site_monthly_delay, aes(month, median_delay)) +
+    geom_col(aes(fill = holiday_affected > 0.15), width = 22) +
+    geom_line(aes(y = p90), colour = "grey30", linetype = "dashed") +
+    scale_fill_manual(values = c("FALSE" = "#4C72B0", "TRUE" = "#DD8452"),
+                      labels = c("Ordinary month", "Public holidays in month"),
+                      name = NULL) +
+    scale_x_date(date_labels = "%b %Y") +
+    labs(title = "Median days from event to data entry",
+         subtitle = "Dashed line is the 90th percentile. A rising trend is the signal, not the level.",
+         x = NULL, y = "Days") +
+    house_theme
+} else {
+  cat("No timeliness data for this site.")
+}
+```
+
+# This site against all sites
+
+Compared at the same **stage of participation**, not on a calendar axis. A site
+in its third month is compared against every other site's third month. Comparing
+a young site against an established one on calendar time penalises it for being
+young, which helps nobody.
+
+```{r vs-all-completeness}
+comparison <- compare_to_all_sites(completeness, sites, site_id, "completeness")
+comparison <- comparison |> filter(months_since_initiation <= 24)
+
+if (any(!is.na(comparison$this_site))) {
+  ggplot(comparison, aes(months_since_initiation)) +
+    geom_ribbon(aes(ymin = all_sites_lower, ymax = all_sites_upper),
+                fill = "grey85") +
+    geom_line(aes(y = all_sites_median), colour = "grey45", linewidth = 0.6) +
+    geom_line(aes(y = this_site), colour = "#C44E52", linewidth = 0.9) +
+    geom_point(aes(y = this_site), colour = "#C44E52", size = 1.8) +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = paste("Completeness at", site_id, "against all sites"),
+         subtitle = "Red is this site. Grey band is the interquartile range across all sites.",
+         x = "Months since site initiation", y = "Fields complete") +
+    house_theme
+} else {
+  cat("Not enough data to compare this site.")
+}
+```
+
+```{r vs-all-timeliness}
+delay_comparison <- compare_to_all_sites(
+  timeliness |> group_by(site_id, month) |>
+    summarise(median_delay_days = median(median_delay_days), .groups = "drop"),
+  sites, site_id, "median_delay_days")
+delay_comparison <- delay_comparison |> filter(months_since_initiation <= 24)
+
+if (any(!is.na(delay_comparison$this_site))) {
+  ggplot(delay_comparison, aes(months_since_initiation)) +
+    geom_ribbon(aes(ymin = all_sites_lower, ymax = all_sites_upper),
+                fill = "grey85") +
+    geom_line(aes(y = all_sites_median), colour = "grey45", linewidth = 0.6) +
+    geom_line(aes(y = this_site), colour = "#C44E52", linewidth = 0.9) +
+    geom_point(aes(y = this_site), colour = "#C44E52", size = 1.8) +
+    labs(title = paste("Entry delay at", site_id, "against all sites"),
+         subtitle = "Red is this site. A line that climbs while the band stays flat is drift.",
+         x = "Months since site initiation", y = "Median days to entry") +
+    house_theme
+} else {
+  cat("Not enough data to compare this site.")
+}
+```
+
+# Primary endpoint completeness
+
+Days alive without life support at 30 days is the outcome every adaptive
+analysis reads. A day with no daily record counts as **unknown**, not as a day
+free of life support, so missing records understate the endpoint rather than
+inflating it.
+
+```{r endpoint}
+if (nrow(site_endpoint)) {
+  endpoint_summary <- summarise_dawols(site_endpoint)
+  knitr::kable(
+    data.frame(
+      Measure = c("Participant-domain records", "Not evaluable (no randomisation date)",
+                  "Complete", "Incomplete (some days unknown)",
+                  "Died within 30 days", "Total unknown days",
+                  "Mean, all records", "Mean, complete records only"),
+      Value = c(endpoint_summary$n, endpoint_summary$not_evaluable,
+                endpoint_summary$n_complete, endpoint_summary$n_incomplete,
+                endpoint_summary$died_within_window,
+                endpoint_summary$total_unknown_days,
+                endpoint_summary$mean_all, endpoint_summary$mean_complete_only)
+    )
+  )
+} else {
+  cat("No endpoint records for this site yet.")
+}
+```
+
+---
+
+::: {.callout-warning appearance="simple"}
+All data in this report is **synthetic**, generated by the code in this
+repository from a fixed seed. The site names are invented. This is an
+independent educational project with no affiliation to any real trial,
+hospital or research group.
+:::

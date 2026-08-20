@@ -16,6 +16,9 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   pipeline:
     runs-on: ubuntu-latest
@@ -40,10 +43,14 @@ jobs:
       - name: Restore the R environment from renv.lock
         uses: r-lib/actions/setup-renv@v2
 
+      - name: Set up Quarto
+        uses: quarto-dev/quarto-actions/setup@v2
+
       - name: Report the environment actually in use
         run: |
           Rscript -e 'cat("R:", R.version.string, "\n")'
           Rscript -e 'cat("packages restored:", nrow(installed.packages()), "\n")'
+          quarto --version
 
       - name: Run the pipeline
         run: Rscript -e 'targets::tar_make()'
@@ -54,6 +61,9 @@ jobs:
       - name: Summarise what the pipeline produced
         run: Rscript scripts/pipeline_summary.R
 
+      - name: Render the monitoring reports
+        run: Rscript scripts/render_reports.R
+
       - name: Upload the pipeline summary
         if: always()
         uses: actions/upload-artifact@v4
@@ -61,3 +71,29 @@ jobs:
           name: pipeline-summary
           path: build/
           if-no-files-found: ignore
+
+      - name: Package the reports for GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  # Publishing matters: it means anyone reading the repository can click a link
+  # and see the actual monitoring report rather than take a screenshot's word
+  # for it. Only the default branch is published.
+  publish:
+    needs: pipeline
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4

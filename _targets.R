@@ -102,6 +102,16 @@ list(
   tar_target(dawols_summary, summarise_dawols(dawols)),
   tar_target(dawols_by_domain, summarise_dawols(dawols, by = "domain")),
 
+  # -- Monitoring metrics ---------------------------------------------------
+  # Computed once here rather than inside each report. Every site report needs
+  # the all-site picture to compare against, so recomputing it per report meant
+  # doing the same work 25 times and pushed a full render past the five-minute
+  # budget in the definition of done.
+  tar_target(monthly_completeness, completeness_by_month(conformed_forms)),
+  tar_target(monthly_timeliness, timeliness_by_month(conformed_forms, trial_config, sites)),
+  tar_target(delay_drift, entry_delay_trend(monthly_timeliness, sites)),
+  tar_target(attention_list, sites_needing_attention(findings, dawols, delay_drift, sites)),
+
   # -- Reporting helpers ----------------------------------------------------
   tar_target(row_counts, form_row_counts(raw_forms)),
   tar_target(defect_summary, defect_catalogue_summary(injected_defects)),
