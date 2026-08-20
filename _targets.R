@@ -17,7 +17,7 @@ library(targets)
 tar_source("R")
 
 tar_option_set(
-  packages = c("yaml", "arrow", "dplyr", "digest"),
+  packages = c("yaml", "arrow", "dplyr", "tidyr", "digest"),
   format = "rds"
 )
 
@@ -88,6 +88,19 @@ list(
   tar_target(recall_table, recall_by_defect_type(scored_defects)),
   tar_target(recall_summary, recall_overall(scored_defects)),
   tar_target(unmatched_findings, unmatched_findings_by_rule(findings, injected_defects)),
+
+  # -- Derived endpoint -----------------------------------------------------
+  # The primary outcome. Derived from the conformed data, never from the
+  # simulator's latent truth -- the whole point is that it must cope with the
+  # gaps and contradictions the pipeline actually receives.
+  tar_target(dawols, derive_days_alive_without_life_support(
+    conformed_forms$daily_icu,
+    conformed_forms$outcome_30d,
+    conformed_forms$randomisation
+  )),
+
+  tar_target(dawols_summary, summarise_dawols(dawols)),
+  tar_target(dawols_by_domain, summarise_dawols(dawols, by = "domain")),
 
   # -- Reporting helpers ----------------------------------------------------
   tar_target(row_counts, form_row_counts(raw_forms)),

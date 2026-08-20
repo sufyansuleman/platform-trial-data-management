@@ -290,3 +290,74 @@ cannot be blank at entry.
 **Worth noting as a general lesson.** The bug was invisible in every summary statistic —
 row counts, defect counts and the conformance log all looked correct. It was only visible
 in an invariant test that compared data against itself through a round trip.
+
+---
+
+## 2026-08-20 — DEC-012: endpoint window is days 0-29; death on day 30 is inside it
+
+**Decision.** Days alive without life support counts days 0 to 29 inclusive, where day 0
+is the day of randomisation into *that domain*. Death on or before day 30 scores 0; death
+on day 31 does not.
+
+**Reasoning.** "Within 30 days" has two readings that differ by exactly one day, and
+leaving the choice implicit means the code and the analysis plan can silently disagree
+about it. Thirty days beginning on the day of randomisation is days 0 to 29. Vital status,
+by contrast, is assessed *at* 30 days, so a death on day 30 falls inside the assessment
+and zeroes the endpoint even though day 30 is not itself counted. Both boundaries are
+tested explicitly at days 0, 1, 29, 30 and 31.
+
+Each domain is anchored to its own randomisation. A participant entered into two domains
+two days apart has two windows that overlap but do not coincide, and scoring both against
+the first randomisation would mis-score the second. This is tested directly.
+
+---
+
+## 2026-08-20 — DEC-013: leaving the ICU is what ends life support, not leaving hospital
+
+**Decision.** A day with no ICU record counts as alive and free of life support when it
+falls after the participant's last ICU record, or after a documented hospital discharge.
+A missing day interior to the recorded ICU stay remains unknown.
+
+**Reasoning.** The first implementation credited only days after *hospital* discharge. But
+life support in this trial -- invasive ventilation, vasopressors, renal replacement -- is
+delivered in an ICU. A participant discharged from the ICU on day 2 and from hospital on
+day 12 spent days 3 to 11 on a general ward: alive, and by definition not receiving any of
+the three. Treating those as unknown discarded real information.
+
+The consequence was severe and was invisible in the unit tests. On pipeline data, **68% of
+surviving participants were marked incomplete** and total unknown days stood at 12,440.
+After the correction, unknown days fell to 1,608 and complete records rose from 990 to
+2,233. Every one of the original 26 endpoint tests passed both before and after, because
+every fixture happened to discharge from ICU and hospital on the same day. A regression
+test for the ward-day case has been added.
+
+Both conditions are needed, not either alone. The hospital-discharge condition is what
+covers the days between an ICU discharge and a later readmission, where the participant
+returns to an ICU so the last-record condition does not apply.
+
+**What this does not license.** A gap *between* two ICU records is still unknown. Leaving
+the ICU explains the days after it; it does not retrospectively explain a gap inside the
+stay. That distinction is tested.
+
+---
+
+## 2026-08-20 — DEC-014: the endpoint reports its own completeness
+
+**Decision.** `derive_days_alive_without_life_support()` returns `unknown_days`,
+`conflicting_days` and `complete` alongside the count, and `summarise_dawols()` reports
+the mean over all records and over complete records separately.
+
+**Reasoning.** A single integer looks equally confident whether it rests on thirty
+observed days or on twenty observed days and ten absent ones. An analyst has to be able to
+see the difference. On current pipeline data the two means differ by **1.6 days**
+(16.18 against 14.55), which is larger than the 1-day practical-equivalence margin the
+analysis plan uses to declare two arms equivalent. A difference that can move a
+pre-specified decision cannot be left implicit in a footnote.
+
+Records with no randomisation date have no window to score and return NA rather than 0.
+Returning 0 would silently score them as the worst possible outcome; NA forces them to be
+counted and reported as not evaluable, which on current data is 99 of 3,058 records.
+
+**Rejected alternative.** Impute the unknown days from surrounding days. It would produce
+a complete-looking dataset whose completeness is manufactured, and it would remove the one
+signal that tells a coordinator which site to call.
