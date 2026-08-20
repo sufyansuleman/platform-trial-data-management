@@ -16,19 +16,16 @@ project_root <- function() {
 
 ROOT <- project_root()
 
-# Several functions resolve config paths relative to the project root, which is
-# how they are called from the pipeline. Running tests from the project root
-# keeps those calls working without threading a path argument through every
-# function purely for the benefit of the test suite.
-setwd(ROOT)
+# Config paths resolve against the project root via project_path(), so tests
+# do not need to change the working directory to find them.
 for (file in list.files(file.path(ROOT, "R"), pattern = "[.]R$",
                         recursive = TRUE, full.names = TRUE)) {
   source(file)
 }
 
-#' Load the trial config from the project root regardless of working directory.
+#' Load the trial config, which resolves its own path from the project root.
 test_config <- function() {
-  load_trial_config(file.path(ROOT, "config", "trial.yml"))
+  load_trial_config()
 }
 
 #' A single-row site definition, for testing conversions in isolation.

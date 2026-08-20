@@ -1,0 +1,54 @@
+# ---------------------------------------------------------------------------
+# Cross-domain rules: consistency for participants entered in more than one
+# domain.
+#
+# Roughly one participant in five here is in two or more domains. Those
+# participants have one body and several sets of case report forms, so facts
+# about the body must agree across all of them. Facts about the domain --
+# the randomisation date, the 30-day window anchored to it -- legitimately
+# differ, and must not be flagged.
+# ---------------------------------------------------------------------------
+
+- id: XDM-001
+  name: death_date_consistent_across_domains
+  scope: outcome_30d
+  severity: critical
+  description: >
+    A participant entered in more than one domain must have the same date of
+    death recorded in every domain.
+  rationale: >
+    A person dies once. Two domains reporting different death dates means at
+    least one primary outcome is wrong, and because each domain is analysed
+    separately the error would otherwise never surface.
+  expression: distinct_death_dates_for_participant <= 1
+  action: escalate
+
+- id: XDM-002
+  name: icu_admission_consistent_across_domains
+  scope: outcome_30d
+  severity: major
+  description: >
+    ICU admission date must agree across every domain a participant is
+    entered in.
+  rationale: >
+    Admission anchors length of stay and the daily record timeline. Domains
+    disagreeing about it means the same daily records are being interpreted
+    against two different day-zero definitions.
+  expression: distinct_admission_dates_for_participant <= 1
+  action: query
+
+- id: XDM-003
+  name: vital_status_consistent_where_windows_agree
+  scope: outcome_30d
+  severity: critical
+  description: >
+    Where two domains share the same 30-day assessment date, they must report
+    the same vital status.
+  rationale: >
+    Domains anchored to different randomisation dates may legitimately differ
+    on 30-day status, because the windows genuinely end on different days.
+    Where the windows end on the SAME day, any disagreement is an error. This
+    rule is deliberately narrow so that legitimate differences are not
+    reported as findings.
+  expression: vital_status_consistent_at_shared_window
+  action: escalate

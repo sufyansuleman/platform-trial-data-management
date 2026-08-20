@@ -117,7 +117,7 @@ render_export <- function(data, site, schema) {
 #' @param cfg Trial configuration.
 #' @param dir Output directory for the raw exports.
 #' @return A data frame describing every file written.
-export_edc <- function(forms, cfg, dir = "data/raw") {
+export_edc <- function(forms, cfg, dir = project_path("data", "raw")) {
   sites <- resolve_sites(cfg)
   form_names <- setdiff(names(forms), "course")
   written <- list()

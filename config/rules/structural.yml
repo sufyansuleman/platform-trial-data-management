@@ -1,0 +1,66 @@
+# ---------------------------------------------------------------------------
+# Structural rules: types, keys, required fields, referential integrity.
+#
+# These check that the dataset is a coherent database, before anyone asks
+# whether the values in it are clinically sensible.
+#
+# Every rule states an `expression` that must be TRUE for a record to PASS.
+# A record where the expression is FALSE becomes a finding.
+# ---------------------------------------------------------------------------
+
+- id: STR-001
+  name: required_field_present
+  scope: [screening, randomisation, daily_icu, outcome_30d, adverse_events]
+  fields: required          # expand to every required field in the form schema
+  severity: major
+  description: >
+    Every field marked required in the form schema must carry a value.
+  rationale: >
+    A required field is required because downstream analysis cannot proceed
+    without it. Missingness concentrated at one site is a training or workload
+    problem at that site, not a random accident, which is why the finding
+    carries the site.
+  expression: .not_missing
+  action: query
+
+- id: STR-002
+  name: participant_known_to_randomisation
+  scope: [daily_icu, outcome_30d, adverse_events]
+  severity: critical
+  description: >
+    Every participant referenced by a follow-up form must have at least one
+    randomisation record.
+  rationale: >
+    A follow-up record for a participant who was never randomised means either
+    the randomisation record is missing or the record belongs to someone else.
+    Both are serious: the first loses a participant from the analysis, the
+    second attributes data to the wrong person.
+  expression: participant_is_randomised
+  action: escalate
+
+- id: STR-003
+  name: participant_id_unique_to_one_site
+  scope: screening
+  severity: critical
+  description: >
+    A participant identifier must be used at exactly one site.
+  rationale: >
+    An identifier issued at two sites collapses two people into one record in
+    every join downstream. Nothing errors; the analysis simply describes a
+    person who does not exist.
+  expression: sites_using_participant_id <= 1
+  action: escalate
+
+- id: STR-004
+  name: single_randomisation_per_domain
+  scope: randomisation
+  severity: critical
+  description: >
+    A participant must be randomised at most once within any single domain.
+  rationale: >
+    A second allocation in the same domain means the participant may have
+    received both interventions, or that one allocation was never acted on.
+    Either way the analysis population is ambiguous and the site must say
+    which allocation was followed.
+  expression: randomisations_in_domain <= 1
+  action: escalate

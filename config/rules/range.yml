@@ -1,0 +1,106 @@
+# ---------------------------------------------------------------------------
+# Range rules: physiological plausibility.
+#
+# These bounds are deliberately TIGHTER than the hard bounds in
+# config/schema/*.yml. The two answer different questions:
+#
+#   * The schema bound asks "could this conceivably be a value of this kind?"
+#     Anything outside it is certainly an error.
+#   * The range rule asks "is this value plausible in this population?"
+#     Anything outside it is probably an error and is worth a query.
+#
+# A 165 kg ICU patient exists. A query asking the site to confirm 165 kg is
+# still the right response, because the far more common explanation is that
+# somebody entered pounds. Severity is set accordingly: implausible-but-possible
+# values are `major` and generate a query, physically impossible values are
+# `critical`.
+# ---------------------------------------------------------------------------
+
+- id: RNG-001
+  name: weight_plausible
+  scope: screening
+  field: weight_kg
+  severity: major
+  min: 35
+  max: 160
+  description: Body weight must lie within the plausible adult range, 35 to 160 kg.
+  rationale: >
+    Values above the plausible maximum are most often a units failure -- a
+    pounds reading submitted as kilograms is roughly 2.2 times too high, which
+    lands a typical adult above 160 kg. Values below it suggest a paediatric
+    record or a transposition. Both warrant confirmation rather than deletion.
+  expression: .in_range
+  action: query
+
+- id: RNG-002
+  name: heart_rate_plausible
+  scope: daily_icu
+  field: heart_rate
+  severity: critical
+  min: 25
+  max: 220
+  description: Heart rate must lie between 25 and 220 beats per minute.
+  rationale: >
+    A sustained rate outside this range is incompatible with a patient who is
+    recorded as alive on the same record. This is an entry error, not a
+    physiological finding.
+  expression: .in_range
+  action: query
+
+- id: RNG-003
+  name: temperature_plausible
+  scope: daily_icu
+  field: temperature_c
+  severity: critical
+  min: 30
+  max: 43
+  description: Core temperature must lie between 30 and 43 degrees Celsius.
+  rationale: >
+    Values outside this range are almost always a unit confusion or a decimal
+    slip. Genuine extremes of temperature are documented in the clinical
+    record and confirmed on query rather than assumed from a single entry.
+  expression: .in_range
+  action: query
+
+- id: RNG-004
+  name: creatinine_plausible
+  scope: screening
+  field: creatinine
+  severity: major
+  min: 15
+  max: 1200
+  description: Serum creatinine must lie between 15 and 1200 umol/L.
+  rationale: >
+    The upper bound admits severe untreated renal failure, which this
+    population genuinely contains. A value above it, or an implausibly low one,
+    more often indicates a mg/dL reading submitted as umol/L or the reverse.
+  expression: .in_range
+  action: query
+
+- id: RNG-005
+  name: age_plausible
+  scope: screening
+  field: age_years
+  severity: critical
+  min: 18
+  max: 110
+  description: Age must be at least 18, the trial's lower eligibility limit, and below 110.
+  rationale: >
+    An age below 18 is an eligibility violation as well as a data problem and
+    must be escalated, not merely queried at the site.
+  expression: .in_range
+  action: escalate
+
+- id: RNG-006
+  name: severity_score_plausible
+  scope: screening
+  field: severity_score
+  severity: major
+  min: 0
+  max: 71
+  description: The severity index must lie on its defined 0 to 71 scale.
+  rationale: >
+    A value off the scale means the wrong instrument was recorded, which
+    invalidates any case-mix adjustment that uses it.
+  expression: .in_range
+  action: query

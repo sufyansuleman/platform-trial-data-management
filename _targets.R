@@ -17,7 +17,7 @@ library(targets)
 tar_source("R")
 
 tar_option_set(
-  packages = c("yaml", "arrow", "dplyr"),
+  packages = c("yaml", "arrow", "dplyr", "digest"),
   format = "rds"
 )
 
@@ -60,7 +60,38 @@ list(
   # own local conventions.
   tar_target(edc_export_manifest, export_edc(raw_forms, trial_config)),
 
+  # -- Ingest ---------------------------------------------------------------
+  # Depends on the export manifest rather than on raw_forms, so that ingest
+  # genuinely reads the files off disk in each site's own local conventions
+  # instead of quietly reusing the in-memory data that produced them.
+  tar_target(ingested, {
+    edc_export_manifest
+    ingest_exports(trial_config)
+  }),
+
+  tar_target(conformed_forms, ingested$forms),
+  tar_target(conformance_log, ingested$conformance_log),
+
+  # -- Validation -----------------------------------------------------------
+  tar_target(rule_files, list.files("config/rules", full.names = TRUE), format = "file"),
+  tar_target(rules, {
+    rule_files
+    load_rules()
+  }),
+
+  tar_target(findings, run_validation(conformed_forms, sites, rules)),
+
+  # -- Scoring the rules against ground truth -------------------------------
+  # The rules are only as trustworthy as the evidence that they work, and the
+  # only honest evidence is performance against defects we know were injected.
+  tar_target(scored_defects, match_defects_to_findings(injected_defects, findings)),
+  tar_target(recall_table, recall_by_defect_type(scored_defects)),
+  tar_target(recall_summary, recall_overall(scored_defects)),
+  tar_target(unmatched_findings, unmatched_findings_by_rule(findings, injected_defects)),
+
   # -- Reporting helpers ----------------------------------------------------
   tar_target(row_counts, form_row_counts(raw_forms)),
-  tar_target(defect_summary, defect_catalogue_summary(injected_defects))
+  tar_target(defect_summary, defect_catalogue_summary(injected_defects)),
+  tar_target(findings_summary, findings_by_rule(findings)),
+  tar_target(site_findings, findings_by_site(findings))
 )

@@ -2,6 +2,36 @@
 # Shared helpers used across simulate/, ingest/, validate/, derive/ and cut/.
 # ---------------------------------------------------------------------------
 
+#' Locate the project root
+#'
+#' Walks up from the working directory looking for `_targets.R`. Every path
+#' the pipeline reads from configuration is resolved against this rather than
+#' against the working directory, so the same call works from the project root,
+#' from `tests/testthat/`, and from a Quarto document rendering in its own
+#' directory. Relying on the working directory instead means the code works
+#' until the first time something calls it from somewhere else.
+#'
+#' @param start Directory to begin the search from.
+#' @return Absolute path to the project root.
+find_project_root <- function(start = getwd()) {
+  path <- normalizePath(start, winslash = "/", mustWork = TRUE)
+  while (!file.exists(file.path(path, "_targets.R"))) {
+    parent <- dirname(path)
+    if (identical(parent, path)) {
+      stop("Could not locate the project root (no _targets.R found above '",
+           start, "').", call. = FALSE)
+    }
+    path <- parent
+  }
+  path
+}
+
+#' Build a path relative to the project root
+#'
+#' @param ... Path components, as for [file.path()].
+#' @return An absolute path.
+project_path <- function(...) file.path(find_project_root(), ...)
+
 #' Load the trial configuration
 #'
 #' Reads `config/trial.yml` and returns it as a nested list. Assumes the file
@@ -10,7 +40,7 @@
 #'
 #' @param path Path to the configuration file.
 #' @return A nested list mirroring the YAML structure.
-load_trial_config <- function(path = "config/trial.yml") {
+load_trial_config <- function(path = project_path("config", "trial.yml")) {
   stopifnot(file.exists(path))
   yaml::read_yaml(path)
 }
@@ -20,7 +50,7 @@ load_trial_config <- function(path = "config/trial.yml") {
 #' @param form Form name, e.g. "daily_icu".
 #' @param dir Directory holding the schema YAML files.
 #' @return A list with `form`, `key` and `columns`.
-load_schema <- function(form, dir = "config/schema") {
+load_schema <- function(form, dir = project_path("config", "schema")) {
   path <- file.path(dir, paste0(form, ".yml"))
   stopifnot(file.exists(path))
   yaml::read_yaml(path)
@@ -30,7 +60,7 @@ load_schema <- function(form, dir = "config/schema") {
 #'
 #' @param dir Directory holding the schema YAML files.
 #' @return Character vector of form names.
-schema_forms <- function(dir = "config/schema") {
+schema_forms <- function(dir = project_path("config", "schema")) {
   tools::file_path_sans_ext(basename(list.files(dir, pattern = glob2rx("*.yml"))))
 }
 
@@ -115,3 +145,18 @@ rnorm_bounded <- function(n, mean, sd, min, max) {
 #' @param x Numeric vector on the log-odds scale.
 #' @return Numeric vector of probabilities.
 inv_logit <- function(x) 1 / (1 + exp(-x))
+
+#' Minimum of a vector, or NA when it holds no usable value
+#'
+#' `min()` on an all-missing vector warns and returns `Inf`, which then
+#' propagates silently into date comparisons as a value nothing can exceed.
+#' Returning NA instead keeps "we do not know" distinct from "infinitely far
+#' in the future", which for a date of death is not a subtle difference.
+#'
+#' @param x A vector.
+#' @return The minimum, or NA of the same type as `x`.
+min_or_na <- function(x) {
+  usable <- x[!is.na(x)]
+  if (!length(usable)) return(x[NA_integer_][1])
+  min(usable)
+}

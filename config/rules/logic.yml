@@ -1,0 +1,80 @@
+# ---------------------------------------------------------------------------
+# Logic rules: cross-field and cross-form consistency.
+#
+# These are the rules that no single form can satisfy on its own. They are also
+# where most genuinely dangerous data problems live, because a record that is
+# internally consistent looks correct to everyone who only ever opens one form.
+# ---------------------------------------------------------------------------
+
+- id: LOG-001
+  name: no_gap_in_daily_records
+  scope: daily_icu
+  severity: major
+  description: >
+    Consecutive daily records for a participant must not skip a day within an
+    ICU stay.
+  rationale: >
+    A missing day inside a stay is not the same as a discharge. Until it is
+    resolved, the day is unknown, and the primary endpoint must treat it as
+    unknown rather than as a day free of life support. Defaulting a gap to
+    "no support recorded" inflates days alive without life support in
+    proportion to how badly a site enters data, which turns a data-quality
+    problem into an apparent treatment effect.
+  expression: days_since_previous_record <= 1
+  action: query
+
+- id: LOG-002
+  name: not_alive_after_death
+  scope: daily_icu
+  severity: critical
+  description: >
+    A daily record must not report the participant alive on a date after the
+    recorded date of death.
+  rationale: >
+    The contradiction spans two forms, so neither form looks wrong on its own.
+    One of the two is incorrect and the site must say which: the outcome form
+    drives the primary analysis, and the daily records drive the endpoint.
+  expression: record_date <= death_date_or_infinity
+  action: escalate
+
+- id: LOG-003
+  name: death_date_requires_dead_status
+  scope: outcome_30d
+  severity: critical
+  description: >
+    A record carrying a date of death must report vital status as dead, and a
+    record reporting death must carry a date.
+  rationale: >
+    Vital status is the secondary outcome and the gate on the primary one. A
+    status and a date that disagree make the participant's contribution to the
+    analysis undefined.
+  expression: death_date_and_status_agree
+  action: escalate
+
+- id: LOG-004
+  name: life_support_requires_alive
+  scope: daily_icu
+  severity: major
+  description: >
+    Life support must not be recorded on a day the participant is reported as
+    not alive.
+  rationale: >
+    Support delivered to a participant recorded as dead on the same row is an
+    internal contradiction within a single record, and the most likely
+    explanation is that the alive flag was mis-entered rather than that the
+    support was.
+  expression: alive == 1 | (mechanical_ventilation == 0 & vasopressors == 0 & renal_replacement == 0)
+  action: query
+
+- id: LOG-005
+  name: icu_location_present_when_in_icu
+  scope: daily_icu
+  severity: minor
+  description: >
+    A record marked as in ICU must name the ICU unit.
+  rationale: >
+    The unit identifier is what makes a mid-stay transfer visible. Without it,
+    a participant who moved between units is indistinguishable from one who
+    did not, and transfers are a known source of duplicated daily records.
+  expression: in_icu == 0 | !is.na(icu_location)
+  action: query

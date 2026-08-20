@@ -159,8 +159,16 @@ inject_out_of_range <- function(forms, cfg, spec) {
     data[[variant$field]][hit] <- variant$value
     forms[[variant$form]] <- data
 
+    # Each variant is caught by a different range rule -- an implausible
+    # weight by RNG-001, an implausible heart rate by RNG-002. The variant's
+    # own tag wins over the defect's default.
+    variant_spec <- spec
+    if (!is.null(variant$expected_rule_id)) {
+      variant_spec$expected_rule_id <- variant$expected_rule_id
+    }
+
     ground_truth[[i]] <- defect_rows(
-      spec, variant$form, variant$field,
+      variant_spec, variant$form, variant$field,
       participant_id = data$participant_id[hit],
       site_id        = data$site_id[hit],
       record_key     = as.character(data[[unlist(load_schema(variant$form)$key)[1]]][hit]),
@@ -336,16 +344,23 @@ inject_vital_status_conflict <- function(forms, cfg, spec) {
     rows <- daily[daily$participant_id == pid, ]
     last <- rows[which.max(rows$icu_day), ]
     n_extra <- sample(seq(extra_range[1], extra_range[2]), 1)
+    death_date <- outcome$death_date[outcome$participant_id == pid][1]
+
+    # The added records must fall strictly AFTER the recorded date of death,
+    # otherwise they contradict nothing and the defect is not a defect. The
+    # last daily record can sit on or before the death date, so anchoring on
+    # it is not sufficient -- anchor on the later of the two.
+    anchor_date <- max(last$record_date, death_date, na.rm = TRUE)
+    day_shift <- as.integer(anchor_date - last$record_date)
 
     added <- last[rep(1, n_extra), ]
-    added$icu_day <- last$icu_day + seq_len(n_extra)
-    added$record_date <- last$record_date + seq_len(n_extra)
-    added$entry_date <- last$entry_date + seq_len(n_extra)
+    added$icu_day <- last$icu_day + day_shift + seq_len(n_extra)
+    added$record_date <- anchor_date + seq_len(n_extra)
+    added$entry_date <- last$entry_date + day_shift + seq_len(n_extra)
     added$alive <- 1L
     added$record_id <- sprintf("DLY-9%06d", seq_len(n_extra) + length(new_rows) * 10)
     new_rows[[pid]] <- added
 
-    death_date <- outcome$death_date[outcome$participant_id == pid][1]
     ground_truth[[pid]] <- defect_rows(
       spec, "daily_icu", "alive",
       participant_id = pid,

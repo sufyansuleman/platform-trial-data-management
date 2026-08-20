@@ -271,10 +271,13 @@ defects:
     name: out_of_range_value
     description: Physiologically impossible values entered.
     participant_rate: 0.006
+    # Each variant names the rule that should catch it. They differ: an
+    # implausible weight is RNG-001, an implausible heart rate is RNG-002.
+    # Tagging them all with one rule id understated recall badly on first run.
     variants:
-      - {form: screening, field: weight_kg,      value: 8}
-      - {form: daily_icu, field: heart_rate,     value: 400}
-      - {form: daily_icu, field: temperature_c,  value: 12}
+      - {form: screening, field: weight_kg,     value: 8,   expected_rule_id: RNG-001}
+      - {form: daily_icu, field: heart_rate,    value: 400, expected_rule_id: RNG-002}
+      - {form: daily_icu, field: temperature_c, value: 12,  expected_rule_id: RNG-003}
     expected_rule_id: RNG-001
 
   - id: D11

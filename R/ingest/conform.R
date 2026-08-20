@@ -236,7 +236,7 @@ conform_form <- function(raw, schema, site, file_encoding) {
 #' @param cfg Trial configuration.
 #' @param dir Root directory of the raw exports.
 #' @return A list with `forms` (named list of data frames) and `conformance_log`.
-ingest_exports <- function(cfg, dir = "data/raw") {
+ingest_exports <- function(cfg, dir = project_path("data", "raw")) {
   sites <- resolve_sites(cfg)
   files <- list_export_files(dir)
   forms <- list()

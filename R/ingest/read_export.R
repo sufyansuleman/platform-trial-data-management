@@ -59,7 +59,7 @@ read_export_file <- function(path, encoding = detect_encoding(path)) {
 #'
 #' @param dir Root directory of the raw exports.
 #' @return A data frame with `form`, `site_id` and `path`.
-list_export_files <- function(dir = "data/raw") {
+list_export_files <- function(dir = project_path("data", "raw")) {
   forms <- schema_forms()
   rows <- lapply(forms, function(form) {
     form_dir <- file.path(dir, form)
