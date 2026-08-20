@@ -203,3 +203,42 @@ summary that did not look at episode length.
 **Note for the derived endpoint.** This is the generator, not the analysis. The endpoint
 in `R/derive/` must not assume any of this structure — it reads the daily records as
 given, including their gaps. See DEC-006.
+
+---
+
+## 2026-08-20 — DEC-009: conjugate models and `adaptr`, not Stan
+
+**Decision.** The Bayesian analysis layer (spec Part 2) uses closed-form conjugate models
+— beta-binomial for binary outcomes, normal-normal for the continuous primary endpoint —
+with `adaptr` for design operating characteristics. Neither `brms` nor `rstanarm` is a
+dependency.
+
+**Reasoning.** The specification asks for the simplest defensible model and says
+explicitly not to use a complex model that cannot be explained in two sentences. A
+conjugate beta-binomial posterior meets that test exactly: the posterior is
+`Beta(a + events, b + non-events)`, and P(superiority) is a single integral over two
+independent posteriors evaluated by direct draws. There is nothing to diagnose, nothing to
+converge, and no sampler seed to make the result irreproducible.
+
+That last point decides it. Spec §2.8 requires a test asserting a rerun analysis is
+**bit-identical** to the stored analysis record. An MCMC sampler makes that claim fragile:
+it holds only for a fixed seed, a fixed chain count, and a fixed version of the sampler
+and its compiler. A conjugate posterior is a deterministic function of the sufficient
+statistics, so bit-identity is a property of the arithmetic rather than a property of the
+environment. The strongest claim the repository makes should not rest on a Stan toolchain
+being byte-stable across machines.
+
+Runtime matters too: `rstan` compiles models with Rtools, and the definition of done
+requires a clean run in under five minutes with CI on every push.
+
+**Rejected alternatives.**
+- *`rstanarm`* — ships precompiled models, so no runtime compile, and would permit genuine
+  covariate adjustment. The right choice if the SAP required an adjusted model with
+  partial pooling across sites. It does not.
+- *`brms`* — most flexible and most idiomatic for hierarchical models, but compiles each
+  model at runtime, which would make CI slow and fragile for no analytical gain here.
+
+**Consequence accepted.** Covariate adjustment is limited to what a conjugate form
+supports, i.e. stratified analysis rather than a fitted regression. If the SAP later calls
+for an adjusted continuous model with site-level random effects, this decision must be
+revisited and `rstanarm` is the fallback. That trigger is recorded here deliberately.
