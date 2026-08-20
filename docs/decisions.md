@@ -1,0 +1,104 @@
+# Design decisions
+
+A dated log of every non-obvious choice made while building this project, with the
+reasoning and the alternative that was rejected. Newest entries at the bottom.
+
+---
+
+## 2026-08-20 — DEC-001: `dplyr` rather than `data.table`
+
+**Decision.** The data-manipulation grammar for this repository is `dplyr` (with `tidyr`
+for reshaping). Used consistently; no `data.table` anywhere.
+
+**Reasoning.** The specification requires one or the other, consistently. This repository
+is written to be *read* — by a hiring panel, and notionally by a trial manager or
+clinician checking that a derived endpoint means what they think it means. `dplyr`'s
+verb pipeline reads close to prose, which matters more here than throughput. The whole
+dataset is ~2,500 participants and well under a million rows, so `data.table`'s
+performance advantage is irrelevant at this scale.
+
+**Rejected alternative.** `data.table` — faster and lighter on dependencies, and the
+better choice if this pipeline ever had to process tens of millions of rows. Its
+`DT[i, j, by]` idiom is denser and less obvious to a reader who does not already know it.
+If scale ever became the constraint, the ingest and validate layers are the places to
+port first.
+
+---
+
+## 2026-08-20 — DEC-002: Parquet for intermediate storage, CSV only at the EDC boundary
+
+**Decision.** `data/raw/` holds CSV, because that is what a real EDC export looks like
+and it is where the messy country-specific formatting problems live. Everything
+downstream (`data/interim/`, `data/cuts/`) is Parquet via `arrow`.
+
+**Reasoning.** CSV at the boundary is realistic and is the *point* — date formats,
+decimal separators and encodings are only ambiguous because CSV is untyped. Once ingest
+has resolved that ambiguity, persisting the resolution in a typed, self-describing
+format means no downstream stage can silently re-introduce a coercion bug. Parquet also
+hashes stably for the data-cut manifests in Milestone 2.
+
+**Rejected alternative.** RDS — simpler, no `arrow` dependency, but R-only and opaque to
+anyone inspecting a frozen cut with other tooling.
+
+---
+
+## 2026-08-20 — DEC-003: Prefer CRAN binaries over newest-version source builds
+
+**Decision.** Package installation requests the newest available *binary* build
+(`pkgType = "binary"`), falling back to a source build only where no binary exists for
+this platform. Exact resolved versions are pinned in `renv.lock` as normal.
+
+**Reasoning.** The development machine runs R 4.4, which CRAN now classifies as *oldrel*
+and no longer builds fresh Windows binaries for. `renv`'s default — take the newest
+version on CRAN — therefore silently selects source-only releases and compiles them.
+Measured on this machine, `igraph` 2.3.3 (the newest source release; the R 4.4 binary is
+frozen at 2.3.0) reached 386 of ~1,726 object files in 30 minutes, extrapolating to
+roughly two hours for one dependency of `targets`. `arrow` would repeat the problem.
+Version *recency* buys this project nothing: `igraph` is used only for topological
+sorting of the `targets` DAG. Version *pinning* is what the reproducibility requirement
+in the specification actually depends on, and `renv.lock` provides that identically for
+a binary or a source install.
+
+**Rejected alternatives.**
+- *Wait out the source compiles.* Correct but costs hours per environment rebuild, and
+  would do the same to anyone cloning the repo on an oldrel R.
+- *Upgrade the machine to R 4.5.x*, where every package has a current binary. Cleaner in
+  principle, and the right move eventually, but it changes the developer's global
+  environment as a side effect of a project setup step, and would require re-running
+  `renv::init` against the new R version. Deferred; revisit if a needed package turns out
+  to have no 4.4 binary.
+
+**Consequence to watch.** CI runs on a different R version than local development. The
+GitHub Actions workflow restores from `renv.lock`, so versions match; if a pinned version
+has no binary on the runner, CI absorbs a one-off compile. Acceptable, and cached.
+
+---
+
+## 2026-08-20 — DEC-004: `renv` snapshot type `all`, not the default `implicit`
+
+**Decision.** `renv::settings$snapshot.type("all")`. The lockfile records every package in
+the project library, not only those detected in project code.
+
+**Reasoning.** renv's default, `implicit`, builds the lockfile by scanning project `.R`
+and `.qmd` files for `library()` / `require()` / `::` calls. At bootstrap there is no code
+yet, so the first `renv::snapshot()` produced a lockfile containing exactly one package —
+`renv` itself — despite twelve having been installed. A clean clone running
+`renv::restore()` would have installed nothing and the pipeline would have failed at the
+first `library()` call. The specification's definition of done (§9) requires
+`renv::restore()` on a fresh clone to work, so the lockfile must describe the environment
+that was actually tested, independently of whether static analysis can see every usage.
+
+`implicit` also has a subtler failure mode for this project: packages loaded indirectly —
+`arrow` invoked only through a `targets` format declaration, or a Quarto report's engine
+dependencies — are easy for the scanner to miss, producing a lockfile that restores an
+environment where the pipeline does not actually run.
+
+**Rejected alternative.** Keep `implicit` and rely on code scanning once the R sources
+exist. Smaller, tidier lockfiles that document real usage, and it is renv's recommended
+default for good reason. Rejected because a lockfile that is silently incomplete is a
+reproducibility failure that surfaces only on someone else's machine — precisely the
+failure this repository is meant to demonstrate competence against.
+
+**Cost accepted.** The lockfile carries transitive dependencies that could in principle be
+pruned (102 packages, ~3,900 lines). It is machine-generated and not read by hand, so the
+size is not a real cost.

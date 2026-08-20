@@ -1,0 +1,22 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+renv/library/
+renv/staging/
+renv/python/
+_targets/
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/cuts/*
+!data/cuts/.gitkeep
+*_files/
+*_cache/
+.quarto/
+_site/
+.DS_Store
+
+# local bootstrap scaffolding, not part of the specified repo structure
+setup_renv.R
