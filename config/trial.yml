@@ -192,22 +192,28 @@ clinical:
   # `persistence` is the probability of continuing support given it was given
   # yesterday. Without it, independent daily draws produce implausibly
   # fragmented on/off patterns, which would distort the derived endpoint.
+  # `intercept` and `severity_coefficient` set the probability of STARTING a
+  # support on ICU day 0. `daily_taper` reduces the chance of starting it for
+  # the first time on later days. `persistence` is the probability of
+  # continuing once started, which makes episode length geometric with mean
+  # 1 / (1 - persistence) -- so persistence is calibrated against typical
+  # episode duration, shown in the comment beside each value.
   life_support:
     mechanical_ventilation:
-      intercept: 0.35
+      intercept: -1.03            # ~65% ventilated on day 0 at median severity
       severity_coefficient: 0.075
-      daily_taper: 0.88
-      persistence: 0.82
+      daily_taper: 0.80
+      persistence: 0.85           # mean episode ~6.7 days
     vasopressors:
-      intercept: 0.10
+      intercept: -1.14            # ~60% on day 0 at median severity
       severity_coefficient: 0.070
-      daily_taper: 0.84
-      persistence: 0.74
+      daily_taper: 0.78
+      persistence: 0.72           # mean episode ~3.6 days
     renal_replacement:
-      intercept: -2.20
+      intercept: -3.31            # ~12% on day 0 at median severity
       severity_coefficient: 0.060
-      daily_taper: 0.94
-      persistence: 0.90
+      daily_taper: 0.90
+      persistence: 0.90           # mean episode ~10 days
 
   # Inter-ICU transfer (a participant moves between ICU locations mid-stay).
   transfer_probability: 0.06

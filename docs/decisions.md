@@ -169,3 +169,37 @@ attribute every transformation to a specific file.
 **Rejected alternative.** One file per form with an encoding column. Fewer files, but it
 would require the export to already know the answer to the question ingest exists to
 answer, which defeats the exercise.
+
+---
+
+## 2026-08-20 — DEC-008: starting and continuing life support are modelled separately
+
+**Decision.** A life-support trajectory is generated from two distinct probabilities:
+the probability of *starting* support (logistic in baseline severity, tapering with each
+further ICU day) and the probability of *continuing* it once started (a fixed
+`persistence` per support type).
+
+**Reasoning.** The first version used a single tapering probability with persistence
+folded in as `p + (1 - p) * persistence`. That expression pushes the daily probability
+toward 1 as soon as support begins, so in practice nobody ever weaned: renal replacement
+ran on 53.6% of all ICU-days against a day-0 rate of 30.5%, and only **5.5%** of ICU-days
+were free of all three supports. Days alive without life support would then have been
+close to zero for nearly every participant — an endpoint with no variance to detect a
+treatment effect in, and one whose few non-zero values would be driven by length of stay
+rather than by recovery.
+
+Separating the two probabilities makes episode length geometric with mean
+`1 / (1 - persistence)`, which means the parameter is calibrated against something a
+clinician can check: how many days a typical episode of that support lasts. The
+recalibrated model gives day-0 rates of 63% ventilation, 58% vasopressors and 13.8%
+renal replacement, with 21.9% of ICU-days free of all support.
+
+**Rejected alternative.** Keeping one probability and lowering the intercepts until the
+marginal rates looked right. It would have matched the day-0 targets while leaving the
+duration structure wrong — support would still never stop, just start less often. The
+endpoint would still have been degenerate, and the error would have been invisible in any
+summary that did not look at episode length.
+
+**Note for the derived endpoint.** This is the generator, not the analysis. The endpoint
+in `R/derive/` must not assume any of this structure — it reads the daily records as
+given, including their gaps. See DEC-006.

@@ -6,27 +6,38 @@
 
 #' Simulate a single life-support trajectory
 #'
-#' Support on day 0 is a logistic function of severity. Each subsequent day the
-#' underlying probability tapers, but support already in place tends to
-#' continue: `persistence` is the probability of continuing given yesterday.
-#' Without that term, independent daily draws give implausibly fragmented
-#' on/off patterns that would distort the derived endpoint.
+#' Starting and continuing a life support are separate processes and are
+#' modelled separately:
+#'
+#'   * **Starting** on day 0 is a logistic function of severity. Starting on a
+#'     later day is progressively less likely, since a participant who has not
+#'     needed support so far is unlikely to begin needing it -- this is what
+#'     `daily_taper` governs.
+#'   * **Continuing** happens with fixed probability `persistence`, which makes
+#'     the duration of an episode geometric with mean `1 / (1 - persistence)`.
+#'     Calibrating persistence therefore calibrates a directly clinical
+#'     quantity: how many days a typical episode of that support lasts.
+#'
+#' Modelling both with one probability, as an earlier version did, made support
+#' effectively permanent once started -- nobody ever weaned, and days alive
+#' without life support collapsed to near zero for the whole trial.
 #'
 #' @param days Integer vector of ICU day numbers, in order.
 #' @param severity Baseline severity score.
 #' @param spec Config block for this support type.
 #' @return Integer vector of 0/1, one per element of `days`.
 simulate_support_trajectory <- function(days, severity, spec) {
-  base_p <- inv_logit(spec$intercept + spec$severity_coefficient * severity)
+  start_p <- inv_logit(spec$intercept + spec$severity_coefficient * severity)
   on <- integer(length(days))
   previous <- 0L
 
   for (i in seq_along(days)) {
-    p_today <- base_p * spec$daily_taper^days[i]
-    if (previous == 1L) {
-      p_today <- p_today + (1 - p_today) * spec$persistence
+    p_today <- if (previous == 1L) {
+      spec$persistence
+    } else {
+      start_p * spec$daily_taper^days[i]
     }
-    on[i] <- stats::rbinom(1, 1, min(1, p_today))
+    on[i] <- stats::rbinom(1, 1, min(1, max(0, p_today)))
     previous <- on[i]
   }
   on
