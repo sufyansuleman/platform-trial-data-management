@@ -242,3 +242,51 @@ requires a clean run in under five minutes with CI on every push.
 supports, i.e. stratified analysis rather than a fitted regression. If the SAP later calls
 for an adjusted continuous model with site-level random effects, this decision must be
 revisited and `rstanarm` is the fallback. That trigger is recorded here deliberately.
+
+---
+
+## 2026-08-20 — DEC-010: the exported value is the value of record, and conversion is lossy
+
+**Decision.** After ingest, the value of record is the value that came out of the site's
+export, converted to internal units. The pre-export value inside the simulator is not
+recoverable exactly, and the pipeline does not pretend otherwise. Round-trip tests assert
+agreement within a stated tolerance, not bit equality.
+
+**Reasoning.** DK-07 exports weight in pounds to one decimal place and NL-01 exports
+creatinine in mg/dL to two. Converting those back to kg and umol/L cannot recover more
+precision than the export carried: the round trip differs by up to 0.023 kg and
+0.44 umol/L respectively. This is not a defect to be fixed by widening the export format.
+It is what actually happens when a site records a value in its own units at its own
+precision, and the exported figure is the one the site can attest to.
+
+Asserting bit equality would therefore be asserting something false about the data flow.
+The tolerance is set well below clinical relevance — 0.023 kg is a fortieth of a
+kilogram — and the conformance log records every conversion, so the provenance of the
+difference is never mysterious.
+
+**Consequence for later milestones.** Data cuts are taken *after* ingest, so the
+reproducibility guarantee in Milestone 2 is unaffected: the cut hashes the conformed
+values, and re-running ingest on the same raw exports reproduces them exactly. The lossy
+step sits upstream of the cut, not inside it.
+
+---
+
+## 2026-08-20 — DEC-011: identifiers are never blanked by the missing-data injector
+
+**Decision.** `blankable_fields()` excludes any field whose name ends in `_id`, in
+addition to the record key and `entry_date`.
+
+**Reasoning.** The first version derived blankable fields as "required and not in the
+key", which for `daily_icu` — keyed on `participant_id` plus `icu_day` — left
+`record_id` eligible. Blanking it produced records with no identifier, which is not a
+missing-value defect at all: it is an unlinkable orphan, needing a different rule and a
+different remediation. It also broke every downstream ordering silently, which is how it
+surfaced — the export/ingest round trip stopped matching because rows could no longer be
+aligned by key, and two unrelated fields appeared to be corrupted.
+
+`entry_date` is excluded because the EDC stamps it rather than a human typing it, so it
+cannot be blank at entry.
+
+**Worth noting as a general lesson.** The bug was invisible in every summary statistic —
+row counts, defect counts and the conformance log all looked correct. It was only visible
+in an invariant test that compared data against itself through a round trip.

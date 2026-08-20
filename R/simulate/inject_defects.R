@@ -43,8 +43,18 @@ defect_rows <- function(spec, form, field, participant_id, site_id,
 #' Fields eligible to be blanked by the missing-data injector
 #'
 #' Derived from the schema rather than hard-coded: any required field that is
-#' not part of the record key and not a structural identifier. Blanking a key
-#' would produce an unlinkable orphan record, which is a different defect.
+#' not part of the record key and not an identifier.
+#'
+#' Identifiers are excluded deliberately. A record whose own identifier is
+#' blank is not a record with a missing value -- it is an unlinkable orphan,
+#' which is a structurally different defect requiring a different rule and a
+#' different remediation. Blanking `record_id` also silently breaks every join
+#' and every ordering downstream, which is how it was first noticed here: the
+#' export/ingest round-trip stopped matching because rows could no longer be
+#' aligned by key.
+#'
+#' `entry_date` is excluded because it is stamped by the EDC, not typed by a
+#' human, so it cannot be left blank at entry.
 #'
 #' @param form Form name.
 #' @return Character vector of field names.
@@ -52,7 +62,8 @@ blankable_fields <- function(form) {
   schema <- load_schema(form)
   required <- vapply(schema$columns, function(c) isTRUE(c$required), logical(1))
   names <- vapply(schema$columns, function(c) c$name, character(1))
-  structural <- c(unlist(schema$key), "participant_id", "site_id", "entry_date")
+  identifiers <- grep("_id$", names, value = TRUE)
+  structural <- c(unlist(schema$key), identifiers, "entry_date")
   setdiff(names[required], structural)
 }
 

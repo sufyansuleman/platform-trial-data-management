@@ -84,9 +84,13 @@ render_export <- function(data, site, schema) {
     if (identical(type, "date")) {
       format_local_date(value, site$date_format)
     } else if (identical(type, "datetime")) {
-      # Date part in the local format, time appended in ISO style.
-      paste(format_local_date(as.Date(value), site$date_format),
-            format(value, "%H:%M:%S"))
+      # Date part in the local format, time appended in ISO style. A missing
+      # datetime must export as a genuinely empty field: pasting the parts
+      # unguarded yields the string " NA", which is not blank and not a
+      # datetime, and would stop ingest.
+      rendered <- paste(format_local_date(as.Date(value), site$date_format),
+                        format(value, "%H:%M:%S"))
+      ifelse(is.na(value), "", rendered)
     } else if (identical(type, "number")) {
       digits <- if (identical(column, "creatinine") &&
                     identical(site$creatinine_unit, "mg/dL")) 2 else 1
