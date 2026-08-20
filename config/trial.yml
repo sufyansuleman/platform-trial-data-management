@@ -1,0 +1,348 @@
+# ---------------------------------------------------------------------------
+# Trial configuration for the synthetic adaptive platform trial.
+#
+# Every tunable quantity in the simulation lives in this file. Code in R/ must
+# not contain literal parameters -- if a number matters, it belongs here.
+#
+# All sites, names and identifiers are INVENTED. See README disclaimer.
+# ---------------------------------------------------------------------------
+
+trial:
+  id: SYNTH-PLATFORM-01
+  name: Synthetic Adaptive Platform Trial in Critical Illness
+  seed: 20260820                 # master seed; same seed in, identical data out
+
+# --- Enrolment window -------------------------------------------------------
+enrolment:
+  start_date: 2024-01-08
+  months: 24
+  target_participants: 2500
+  enrolled_fraction: 0.70        # fraction of screened patients who are randomised
+  ramp_up_months: 6              # linear ramp from ramp_floor to full rate
+  ramp_floor: 0.25               # fraction of full monthly rate in month 1
+  seasonal_multipliers:          # by calendar month, 1 = January
+    1: 1.00
+    2: 1.00
+    3: 1.05
+    4: 1.00
+    5: 0.95
+    6: 0.85
+    7: 0.70                      # summer dip
+    8: 0.75
+    9: 1.00
+    10: 1.05
+    11: 1.05
+    12: 0.75                     # December dip
+
+# --- Domains ----------------------------------------------------------------
+# Three domains run concurrently over a shared participant population.
+domains:
+  - id: FLUID
+    name: Fluid resuscitation strategy
+    arms: [restrictive, liberal]
+    allocation_ratio: [1, 1]
+    eligibility_fraction: 0.75    # of randomised participants eligible for it
+  - id: ANTICOAG
+    name: Anticoagulation intensity
+    arms: [standard_dose, intermediate_dose]
+    allocation_ratio: [1, 1]
+    eligibility_fraction: 0.45
+  - id: BUFFER
+    name: Buffered versus non-buffered solution
+    arms: [buffered, saline]
+    allocation_ratio: [1, 1]
+    eligibility_fraction: 0.40
+
+# Mean randomisations per participant. Deliberately > 1: multi-domain
+# participation is what creates the cross-domain consistency problems.
+multi_domain:
+  target_randomisations_per_participant: 1.2
+
+# --- Countries --------------------------------------------------------------
+# Local conventions differ by country. The ingest layer must normalise these
+# and log every transformation it applies.
+countries:
+  DK:
+    name: Denmark
+    date_format: "%d-%m-%Y"
+    decimal_separator: "."
+    weight_unit: kg
+    creatinine_unit: umol/L
+    encoding: UTF-8
+  NL:
+    name: Netherlands
+    date_format: "%d-%m-%Y"
+    decimal_separator: ","
+    weight_unit: kg
+    creatinine_unit: umol/L
+    encoding: UTF-8
+  SE:
+    name: Sweden
+    date_format: "%Y-%m-%d"
+    decimal_separator: "."
+    weight_unit: kg
+    creatinine_unit: umol/L
+    encoding: UTF-8
+  FI:
+    name: Finland
+    date_format: "%Y-%m-%d"
+    decimal_separator: ","
+    weight_unit: kg
+    creatinine_unit: umol/L
+    encoding: UTF-8
+  IS:
+    name: Iceland
+    date_format: "%d-%m-%Y"
+    decimal_separator: "."
+    weight_unit: kg
+    creatinine_unit: umol/L
+    encoding: UTF-8
+
+# --- Sites ------------------------------------------------------------------
+# 25 sites: 15 DK from the start, then staggered initiation in NL, SE, FI, IS
+# 9-12 months later. ALL NAMES ARE INVENTED.
+#
+# `capacity` is a relative enrolment weight (1.0 = typical site).
+# Any key present here overrides the country default of the same name.
+sites:
+  - {id: DK-01, name: "Søndre Universitetshospital",   country: DK, initiation_date: 2024-01-08, capacity: 1.8}
+  - {id: DK-02, name: "Vestbro Sygehus",               country: DK, initiation_date: 2024-01-15, capacity: 1.2}
+  - {id: DK-03, name: "Nørrevang Hospital",            country: DK, initiation_date: 2024-01-22, capacity: 1.0, encoding: latin1}
+  - {id: DK-04, name: "Egelund Universitetshospital",  country: DK, initiation_date: 2024-02-05, capacity: 1.6}
+  - {id: DK-05, name: "Havnestad Sygehus",             country: DK, initiation_date: 2024-02-12, capacity: 1.1}
+  - {id: DK-06, name: "Lindeholm Hospital",            country: DK, initiation_date: 2024-02-19, capacity: 0.9}
+  - {id: DK-07, name: "Kærbyhus Sygehus",              country: DK, initiation_date: 2024-03-04, capacity: 0.8, weight_unit: lb}
+  - {id: DK-08, name: "Storstrand Universitetshospital", country: DK, initiation_date: 2024-03-11, capacity: 1.7}
+  - {id: DK-09, name: "Fjordbakken Hospital",          country: DK, initiation_date: 2024-03-18, capacity: 1.0}
+  - {id: DK-10, name: "Møllevang Sygehus",             country: DK, initiation_date: 2024-04-01, capacity: 0.9}
+  - {id: DK-11, name: "Askerup Hospital",              country: DK, initiation_date: 2024-04-08, capacity: 1.0}
+  - {id: DK-12, name: "Nordhavn Universitetshospital", country: DK, initiation_date: 2024-04-15, capacity: 1.5}
+  - {id: DK-13, name: "Bygholm Sygehus",               country: DK, initiation_date: 2024-05-06, capacity: 0.8}
+  - {id: DK-14, name: "Rosenlund Hospital",            country: DK, initiation_date: 2024-05-13, capacity: 0.9}
+  - {id: DK-15, name: "Tværmose Sygehus",              country: DK, initiation_date: 2024-05-20, capacity: 0.7}
+  - {id: NL-01, name: "Sint-Aldegonde Ziekenhuis",     country: NL, initiation_date: 2024-10-07, capacity: 1.3, creatinine_unit: mg/dL}
+  - {id: NL-02, name: "Maasstad Ziekenhuis Noord",     country: NL, initiation_date: 2024-10-21, capacity: 1.1}
+  - {id: NL-03, name: "Duinrand Medisch Centrum",      country: NL, initiation_date: 2024-11-04, capacity: 1.0}
+  - {id: SE-01, name: "Björkhagen Universitetssjukhus", country: SE, initiation_date: 2024-11-18, capacity: 1.4}
+  - {id: SE-02, name: "Västerlid Sjukhus",             country: SE, initiation_date: 2024-12-02, capacity: 1.0}
+  - {id: SE-03, name: "Almstrand Lasarett",            country: SE, initiation_date: 2025-01-13, capacity: 0.8}
+  - {id: FI-01, name: "Koivuranta Keskussairaala",     country: FI, initiation_date: 2024-12-09, capacity: 1.1}
+  - {id: FI-02, name: "Lahdenpää Yliopistollinen Sairaala", country: FI, initiation_date: 2025-01-20, capacity: 0.9}
+  - {id: IS-01, name: "Hvalfjörður Sjúkrahús",         country: IS, initiation_date: 2025-01-06, capacity: 0.6}
+  - {id: IS-02, name: "Thingvellir Landspitali",       country: IS, initiation_date: 2025-02-03, capacity: 0.5}
+
+# --- Public holidays --------------------------------------------------------
+# Data entry is depressed around local public holidays. Timeliness metrics must
+# be read against the country's own calendar, never a single global one.
+holidays:
+  DK: [2024-01-01, 2024-03-28, 2024-03-29, 2024-04-01, 2024-04-26, 2024-05-09,
+       2024-05-20, 2024-06-05, 2024-12-24, 2024-12-25, 2024-12-26, 2024-12-31,
+       2025-01-01, 2025-04-17, 2025-04-18, 2025-04-21, 2025-05-16, 2025-05-29,
+       2025-06-09, 2025-12-24, 2025-12-25, 2025-12-26, 2025-12-31,
+       2026-01-01, 2026-04-02, 2026-04-03, 2026-04-06]
+  NL: [2024-01-01, 2024-03-31, 2024-04-01, 2024-04-27, 2024-05-09, 2024-05-20,
+       2024-12-25, 2024-12-26, 2025-01-01, 2025-04-20, 2025-04-21, 2025-04-26,
+       2025-05-05, 2025-05-29, 2025-06-09, 2025-12-25, 2025-12-26,
+       2026-01-01, 2026-04-05, 2026-04-06]
+  SE: [2024-01-01, 2024-01-06, 2024-03-29, 2024-04-01, 2024-05-01, 2024-05-09,
+       2024-06-06, 2024-06-21, 2024-12-24, 2024-12-25, 2024-12-26, 2024-12-31,
+       2025-01-01, 2025-01-06, 2025-04-18, 2025-04-21, 2025-05-01, 2025-05-29,
+       2025-06-06, 2025-06-20, 2025-12-24, 2025-12-25, 2025-12-26, 2025-12-31,
+       2026-01-01, 2026-01-06, 2026-04-03, 2026-04-06]
+  FI: [2024-01-01, 2024-01-06, 2024-03-29, 2024-04-01, 2024-05-01, 2024-05-09,
+       2024-06-21, 2024-12-06, 2024-12-24, 2024-12-25, 2024-12-26, 2024-12-31,
+       2025-01-01, 2025-01-06, 2025-04-18, 2025-04-21, 2025-05-01, 2025-05-29,
+       2025-06-20, 2025-12-06, 2025-12-24, 2025-12-25, 2025-12-26, 2025-12-31,
+       2026-01-01, 2026-01-06, 2026-04-03, 2026-04-06]
+  IS: [2024-01-01, 2024-03-28, 2024-03-29, 2024-04-01, 2024-04-25, 2024-05-01,
+       2024-05-09, 2024-05-20, 2024-06-17, 2024-08-05, 2024-12-25, 2024-12-26,
+       2025-01-01, 2025-04-17, 2025-04-18, 2025-04-21, 2025-04-24, 2025-05-01,
+       2025-05-29, 2025-06-09, 2025-06-17, 2025-08-04, 2025-12-25, 2025-12-26,
+       2026-01-01, 2026-04-02, 2026-04-03, 2026-04-06]
+
+# --- Clinical process model -------------------------------------------------
+# The aim is a plausible clinical process, not random noise: severity drives
+# length of stay, life-support use and mortality, and support tapers over time.
+clinical:
+  max_follow_up_days: 90         # daily_icu records span day 0..90
+  outcome_window_days: 30        # primary outcome horizon
+
+  age:      {mean: 63, sd: 15, min: 18, max: 95}
+  weight_kg: {mean: 78, sd: 16, min: 38, max: 180}
+  female_fraction: 0.42
+
+  # Severity index, modelled on an APACHE-II-like 0-71 scale.
+  severity: {mean: 22, sd: 8, min: 0, max: 71}
+
+  # ICU length of stay, lognormal, truncated at max_follow_up_days.
+  icu_los: {meanlog: 1.55, sdlog: 0.85}
+
+  # 30-day mortality via logistic model on centred severity.
+  # Intercept chosen to give roughly 30-40% overall mortality.
+  mortality:
+    intercept: -0.72
+    severity_coefficient: 0.055
+    severity_centre: 22
+    # Deaths cluster early; mean days from randomisation to death among those
+    # who die within the outcome window.
+    mean_days_to_death: 8
+
+  # Probability of each life support on ICU day 0, as a logistic function of
+  # severity, then tapering multiplicatively with each further day.
+  # `persistence` is the probability of continuing support given it was given
+  # yesterday. Without it, independent daily draws produce implausibly
+  # fragmented on/off patterns, which would distort the derived endpoint.
+  life_support:
+    mechanical_ventilation:
+      intercept: 0.35
+      severity_coefficient: 0.075
+      daily_taper: 0.88
+      persistence: 0.82
+    vasopressors:
+      intercept: 0.10
+      severity_coefficient: 0.070
+      daily_taper: 0.84
+      persistence: 0.74
+    renal_replacement:
+      intercept: -2.20
+      severity_coefficient: 0.060
+      daily_taper: 0.94
+      persistence: 0.90
+
+  # Inter-ICU transfer (a participant moves between ICU locations mid-stay).
+  transfer_probability: 0.06
+
+  # ICU readmission after discharge alive, within the follow-up window.
+  readmission_probability: 0.05
+
+  # Adverse events: low base rate, per participant per ICU day.
+  adverse_events:
+    daily_rate: 0.060
+    serious_fraction: 0.30
+    related_fraction: 0.25
+    codes: [AE-BLEED, AE-THROMB, AE-INFECT, AE-ARRHY, AE-AKI,
+            AE-HYPOT, AE-ALLERG, AE-PNEU, AE-DELIR, AE-HYPER]
+
+# --- Data entry timeliness --------------------------------------------------
+# Days between the clinical event and its entry into the EDC.
+timeliness:
+  baseline_median_days: 3
+  baseline_sd_days: 2.5
+  max_delay_days: 120
+  holiday_entry_delay_days: 3    # extra delay when entry falls near a local holiday
+  holiday_window_days: 2         # a date within this many days of a holiday counts
+
+# --- Defect injection -------------------------------------------------------
+# Known data-quality problems deliberately introduced after the clean dataset
+# is generated. Ground truth is written to data/interim/injected_defects.parquet
+# so the validation engine's recall can be measured per defect type.
+#
+# `expected_rule_id` is the rule that SHOULD detect the defect. Where it is
+# `~` (null), no deterministic rule can catch it -- it is a statistical signal
+# for central monitoring (Milestone 3), and counting it against rule recall
+# would be dishonest.
+defects:
+  # -- Missingness ----------------------------------------------------------
+  - id: D01
+    name: missing_required_field
+    description: Required field left blank at entry.
+    forms: [screening, randomisation, daily_icu, outcome_30d]
+    base_rate: 0.012                # all sites
+    site_rates: {DK-11: 0.140}      # one site far worse than the rest
+    expected_rule_id: STR-001
+
+  - id: D02
+    name: missing_daily_record_gap
+    description: >
+      One or more daily_icu records absent from the MIDDLE of an ICU stay,
+      leaving a gap rather than truncating the record.
+    participant_rate: 0.035
+    gap_length_days: [1, 3]
+    expected_rule_id: LOG-001
+
+  # -- Implausible values ---------------------------------------------------
+  - id: D03
+    name: out_of_range_value
+    description: Physiologically impossible values entered.
+    participant_rate: 0.006
+    variants:
+      - {form: screening, field: weight_kg,      value: 8}
+      - {form: daily_icu, field: heart_rate,     value: 400}
+      - {form: daily_icu, field: temperature_c,  value: 12}
+    expected_rule_id: RNG-001
+
+  - id: D11
+    name: unit_conversion_failure
+    description: >
+      Weight measured in pounds but submitted as kilograms, at a site whose
+      declared unit is kg. Values are ~2.2x too high.
+    sites: [FI-01]
+    rate: 0.25
+    multiplier: 2.20462
+    expected_rule_id: RNG-001
+
+  # -- Date and sequence problems -------------------------------------------
+  - id: D04
+    name: impossible_date_sequence
+    description: Discharge recorded before ICU admission.
+    participant_rate: 0.012
+    shift_days: [-9, -1]
+    expected_rule_id: TMP-001
+
+  - id: D05
+    name: ae_before_randomisation
+    description: Adverse event onset recorded before randomisation.
+    event_rate: 0.030
+    shift_days: [-14, -1]
+    expected_rule_id: TMP-004
+
+  # -- Identity and linkage -------------------------------------------------
+  - id: D06
+    name: duplicate_participant_id
+    description: Same participant ID issued at two different sites.
+    n_pairs: 6
+    expected_rule_id: STR-003
+
+  - id: D07
+    name: double_randomisation_same_domain
+    description: One participant randomised twice within the same domain.
+    n_participants: 8
+    expected_rule_id: STR-004
+
+  # -- Cross-form logic -----------------------------------------------------
+  - id: D08
+    name: inconsistent_vital_status
+    description: >
+      Participant flagged alive on a daily record dated AFTER the recorded
+      date of death.
+    n_participants: 14
+    alive_days_after_death: [1, 5]
+    expected_rule_id: LOG-002
+
+  # -- Behavioural / statistical signals ------------------------------------
+  # No deterministic rule detects these; they are central-monitoring signals.
+  - id: D09
+    name: late_entry_drift
+    description: >
+      Data entry delay worsening steadily over calendar time at one site --
+      the key drift signal for central monitoring.
+    sites: [SE-02]
+    extra_delay_per_month: 1.8      # days added per month since site initiation
+    expected_rule_id: ~
+
+  - id: D10
+    name: terminal_digit_preference
+    description: >
+      Continuous measurements rounded to values ending in 0 or 5 far more
+      often than chance, indicating estimated rather than measured values.
+    sites: [DK-05]
+    rate: 0.55
+    fields: [heart_rate, weight_kg]
+    expected_rule_id: ~
+
+  - id: D12
+    name: ae_under_reporting
+    description: One site systematically records only a fraction of its AEs.
+    sites: [NL-03]
+    retention_fraction: 0.35
+    expected_rule_id: ~

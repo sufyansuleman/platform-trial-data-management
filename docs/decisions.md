@@ -102,3 +102,70 @@ failure this repository is meant to demonstrate competence against.
 **Cost accepted.** The lockfile carries transitive dependencies that could in principle be
 pruned (102 packages, ~3,900 lines). It is machine-generated and not read by hand, so the
 size is not a real cost.
+
+---
+
+## 2026-08-20 — DEC-005: `alive` is 1 on the day of death, and no daily records follow it
+
+**Decision.** In `daily_icu`, `alive = 1` on the calendar day the participant died,
+because they were alive for part of it. No daily record exists for any day after the
+date of death.
+
+**Reasoning.** The daily record describes a day, not an instant, and every day in the ICU
+except the last is unambiguous. Encoding the death day as `alive = 0` would make the
+record claim the participant was dead for the whole day, which contradicts the
+observations (ventilation, vasopressors) recorded on that same row. The rule that then
+becomes checkable is a clean one: any record with `alive = 1` dated strictly after
+`death_date` is a contradiction. That is rule LOG-002, and defect D08 exists to test it.
+
+**Rejected alternative.** `alive = 0` on the death day, treating the flag as end-of-day
+status. Equally defensible, and some EDC systems do it, but it makes the day of death
+indistinguishable from the day after in any rule that does not also read `death_date`.
+
+---
+
+## 2026-08-20 — DEC-006: absence of a daily record is not absence of life support
+
+**Decision.** A missing `daily_icu` row means one of two different things, and the
+pipeline must distinguish them:
+
+- **Outside a documented ICU stay** — after discharge alive, before readmission — the
+  participant is treated as alive and free of life support. The discharge record is
+  positive evidence.
+- **Inside an ICU stay** — a gap between two days that both have records — the day is
+  **unknown**, not "free of support".
+
+**Reasoning.** This is the single most consequential convention in the repository, which
+is why defect D02 injects interior gaps specifically. Defaulting a gap to "free of
+support" silently inflates days alive without life support, and that number is what an
+adaptive stopping decision reads. An endpoint that drifts upward in proportion to how
+badly a site enters its data is not a clinical signal, it is a data-quality artefact
+wearing a clinical signal's clothes. Defaulting it to "on support" is the opposite bias
+and equally wrong.
+
+Treating interior gaps as unknown means the derived endpoint must return a missingness
+indicator alongside the count, so that an analyst can see how much of the estimate rests
+on absent data rather than being handed a single confident-looking integer.
+
+**Rejected alternatives.**
+- *Impute the gap by carrying the previous day forward.* Plausible for physiology,
+  indefensible for an endpoint: it manufactures the very observations the endpoint counts.
+- *Treat all absence as free of support.* Simple, and wrong in the direction that
+  flatters bad data.
+
+---
+
+## 2026-08-20 — DEC-007: one export file per site per form
+
+**Decision.** The simulated EDC export writes `data/raw/<form>/<site_id>.csv` — 125 files
+— rather than one file per form.
+
+**Reasoning.** Local conventions are a property of the site, not the form. A single
+`screening.csv` cannot simultaneously be Latin-1 for DK-03 and UTF-8 for everyone else,
+nor carry both `DD-MM-YYYY` and `YYYY-MM-DD` in one column. Per-site files also match how
+multi-national trials actually receive data, and they let the ingest conformance log
+attribute every transformation to a specific file.
+
+**Rejected alternative.** One file per form with an encoding column. Fewer files, but it
+would require the export to already know the answer to the question ingest exists to
+answer, which defeats the exercise.

@@ -8,6 +8,7 @@ renv/python/
 _targets/
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/sample/
 data/interim/*
 !data/interim/.gitkeep
 data/cuts/*

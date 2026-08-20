@@ -1,0 +1,4 @@
+"screening_id","participant_id","site_id","screening_date","age_years","sex","weight_kg","creatinine","severity_score","elig_icu","elig_consent","elig_no_exclusion","enrolled","entry_date","site_name"
+"SCR-000066","P-000047","DK-07","09-04-2024","46","F","185.2","80.0","9","1","1","1","1","17-04-2024","Kærbyhus Sygehus"
+"SCR-000079","P-000058","DK-07","15-04-2024","75","M","148.4","117.0","18","","1","1","1","01-05-2024","Kærbyhus Sygehus"
+"SCR-000105","P-000074","DK-07","25-04-2024","54","F","218.5","106.0","22","1","1","1","1","30-04-2024","Kærbyhus Sygehus"
