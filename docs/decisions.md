@@ -544,3 +544,52 @@ knowing whether they are convenient to implement. The normal approximation in DE
 the fixed standard deviation were both chosen partly for tractability, and both are stated
 in the plan as assumptions with the conditions that would invalidate them, rather than
 being discovered and quietly accommodated later.
+
+---
+
+## 2026-08-21 - DEC-022: the simulator generates no treatment effect, and the first analysis finds one anyway
+
+**Decision.** The synthetic data contains **no treatment effect in any domain**. Arm
+allocation is independent of every outcome by construction: the clinical course is
+generated from baseline severity alone and never reads the allocated arm. The seed shipped
+in `config/trial.yml` is retained even though the first adaptive analysis declares
+superiority in ANTICOAG.
+
+**What happened.** Running the pre-specified analysis on `CUT-20250930` gave a difference
+of 2.93 days in ANTICOAG, P(better) = 0.9988, crossing the 0.99 superiority threshold and
+stopping the domain. Mortality differed by 10 percentage points between arms, 28.3%
+against 38.1%.
+
+**Why it is not a bug.** Baseline severity is balanced across the arms, 21.96 against
+22.32, so it is not confounding. Repeating the whole simulation under five seeds gives
+ANTICOAG differences of -9.3, -4.3, -6.1, +3.7 and -0.2 percentage points: varying in
+sign, averaging about -1 point with a standard error of the same magnitude. There is no
+systematic association. The shipped seed simply produced a 2.8 sigma excursion, which is
+roughly a 1 in 200 event per domain and therefore unsurprising somewhere across three
+domains and repeated looks.
+
+**Why the seed is kept.** A demonstration in which the pre-specified rules quietly return
+"continue" three times proves very little. This one shows the thing that actually matters
+about adaptive designs: **a threshold of P > 0.99 is not a guarantee of truth.** It is a
+false positive rate, and here is one. It makes three later pieces of work concrete rather
+than theoretical:
+
+- the calibration of the superiority threshold by simulation under a null scenario, which
+  is exactly what this dataset is;
+- the prior sensitivity analysis, where the question is whether the sceptical prior
+  reverses the decision;
+- the pipeline validation in the addendum's section 2.6, which measures how often the
+  implementation reaches a wrong conclusion when the truth is known.
+
+Reseeding until the answer looked tidy would have hidden the single most instructive result
+the analysis layer produces, and would have been a small act of exactly the kind of
+selection the whole pre-specification apparatus exists to prevent.
+
+**Consequence to carry forward.** Every report that shows this result must state that the
+truth is a null effect and that the finding is therefore a false positive. A reader must
+not be left to infer that intermediate-dose anticoagulation works.
+
+**Still to build.** Section 2.6 requires simulating trials with a **known non-zero** effect,
+which this generator cannot yet do: the clinical course is produced before allocation is
+known. A `true_effect_days` parameter per domain, applied after allocation, is needed for
+that milestone. Defaulting it to zero leaves the current dataset unchanged.
