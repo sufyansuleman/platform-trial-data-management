@@ -593,3 +593,47 @@ not be left to infer that intermediate-dose anticoagulation works.
 which this generator cannot yet do: the clinical course is produced before allocation is
 known. A `true_effect_days` parameter per domain, applied after allocation, is needed for
 that milestone. Defaulting it to zero leaves the current dataset unchanged.
+
+---
+
+## 2026-08-21 - DEC-023: the pre-specified prior fails its own predictive check, and is not changed
+
+**Finding.** The prior predictive check required by the analysis plan was run on the
+pre-specified prior. Under it:
+
+- **14.4%** of prior-implied arm means fall outside 0 to 30 days, which the outcome cannot
+  physically take;
+- **48.1%** of prior-implied treatment effects exceed 10 days, larger than any critical
+  care intervention has produced for this outcome.
+
+By the standard the analysis plan itself sets, "if the prior implies implausible trials, it
+is wrong", the pre-specified Normal(15, 10^2) arm prior is too wide. Called weakly
+informative, it is closer to vague on the effect scale.
+
+**Decision. The prior is not changed for this analysis.** Amending a prior after seeing
+the result it produced is precisely the manoeuvre the whole pre-specification apparatus
+exists to prevent, and it would be no less a manoeuvre for being well intentioned. The
+finding is recorded, reported in the analysis outputs, and carried to a future SAP version
+as a dated amendment effective for analyses **not yet run**.
+
+**Why nothing hinges on it here.** The sensitivity analysis answers the question directly.
+Under the pre-specified prior (SD 10), the sceptical prior (SD 2) and the vague prior
+(SD 100), all three domains reach the **same decision**: ANTICOAG stops for superiority,
+BUFFER and FLUID continue. The conclusion does not depend on the prior, so an over-wide
+prior did not cause the ANTICOAG result.
+
+That is worth stating precisely, because it rules out one explanation and leaves another
+standing. The ANTICOAG false positive described in DEC-022 is **not** an artefact of prior
+choice. It is a chance imbalance in the data, and no prior in the pre-specified range
+suppresses it. A sceptical prior is not a defence against an unlucky sample.
+
+**What a future amendment should say.** An arm prior of Normal(15, 5^2), implying a
+treatment-effect prior of about Normal(0, 7^2), keeps 95% of implied effects within
+roughly 14 days and puts far less mass outside the outcome's bounds, while remaining weak
+enough to be dominated by a few dozen participants per arm. This is recorded as a
+recommendation, not applied.
+
+**The general lesson.** The prior predictive check should be run *before* the analysis, not
+alongside it. Had it been run when the SAP was written, the prior would have been tightened
+then, legitimately and before any data existed. The ordering is now recorded in the plan
+for the next version.

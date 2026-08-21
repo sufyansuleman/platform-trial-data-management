@@ -25,3 +25,5 @@ reports/site_monitoring_*.qmd
 
 # local bootstrap scaffolding, not part of the specified repo structure
 setup_renv.R
+
+data/analyses/

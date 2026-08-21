@@ -121,6 +121,19 @@ list(
 
   tar_target(cut_verification, verify_cut(demonstration_cut$cut_id)),
 
+  # -- Adaptive analysis ----------------------------------------------------
+  # Takes the cut ID and nothing else. Verifies the manifest before reading
+  # anything, and applies priors and thresholds pre-specified in config/ and
+  # committed before this code existed.
+  tar_target(adaptive_analysis, run_adaptive_analysis(demonstration_cut$cut_id)),
+  tar_target(analysis_summary, summarise_analysis(adaptive_analysis)),
+
+  # Does the decision survive the choice of prior? The headline is whether the
+  # DECISION changes, not what each posterior looks like.
+  tar_target(prior_sensitivity_table, prior_sensitivity(demonstration_cut$cut_id)),
+  tar_target(decision_robustness_table, decision_robustness(prior_sensitivity_table)),
+  tar_target(prior_predictive, prior_predictive_check(load_priors())),
+
   # -- Monitoring metrics ---------------------------------------------------
   # Computed once here rather than inside each report. Every site report needs
   # the all-site picture to compare against, so recomputing it per report meant

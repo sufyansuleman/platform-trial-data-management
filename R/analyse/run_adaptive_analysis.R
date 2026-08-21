@@ -33,15 +33,25 @@ analysis_dataset <- function(cut_data, domain) {
     dplyr::ungroup() |>
     dplyr::select(participant_id, domain, arm)
 
+  # Vital status is joined one-to-one. Duplicate identifiers exist in this data
+  # by design (defect D06 issues the same participant id at two sites), and an
+  # unguarded join would silently duplicate those participants in the analysis,
+  # giving them double weight in the comparison. Reducing to one row per
+  # participant-domain first makes the join safe, and `relationship` makes the
+  # assumption fail loudly if it ever stops holding.
+  vital_status <- cut_data$outcome_30d |>
+    dplyr::filter(domain == !!domain) |>
+    dplyr::group_by(participant_id, domain) |>
+    dplyr::slice_head(n = 1) |>
+    dplyr::ungroup() |>
+    dplyr::select(participant_id, domain, vital_status_30d)
+
   cut_data$endpoint |>
     dplyr::filter(domain == !!domain) |>
-    dplyr::inner_join(allocations, by = c("participant_id", "domain")) |>
-    dplyr::left_join(
-      cut_data$outcome_30d |>
-        dplyr::filter(domain == !!domain) |>
-        dplyr::select(participant_id, domain, vital_status_30d),
-      by = c("participant_id", "domain")
-    ) |>
+    dplyr::inner_join(allocations, by = c("participant_id", "domain"),
+                      relationship = "many-to-one") |>
+    dplyr::left_join(vital_status, by = c("participant_id", "domain"),
+                     relationship = "many-to-one") |>
     as.data.frame()
 }
 

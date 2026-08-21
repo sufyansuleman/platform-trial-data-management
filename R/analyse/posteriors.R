@@ -236,13 +236,26 @@ apply_decision_rules <- function(comparison, rules = load_decision_rules()) {
 #' has stopped recruiting to an arm cannot gather the information it would need
 #' to discover it was wrong.
 #'
+#' The floor is applied by CLAMPING, not by raising and renormalising. Raising
+#' the smaller share to the floor and then dividing by the new total pushes it
+#' straight back below the floor: with P(A better) = 0 and a floor of 0.40,
+#' `pmax(c(0, 1), 0.4)` is `c(0.4, 1)`, which renormalises to `c(0.29, 0.71)`.
+#' The arm the plan guarantees at least 40% of participants would have received
+#' 29%, and nothing in the output would have shown it. Clamping the value into
+#' `[floor, 1 - floor]` and taking the complement satisfies the guarantee by
+#' construction, for two arms.
+#'
+#' Assumes exactly two arms, which every domain in this trial has. More arms
+#' would need a genuine projection onto the constrained simplex, and the
+#' renormalising shortcut would be wrong there too.
+#'
 #' @param probability_a_better P(arm A is better), from the comparison.
 #' @param rules Decision rules, supplying the floor.
 #' @return A named numeric vector of allocation probabilities summing to 1.
 update_allocation <- function(probability_a_better, rules = load_decision_rules()) {
   floor_value <- rules$response_adaptive_randomisation$minimum_allocation
-  raw <- c(a = probability_a_better, b = 1 - probability_a_better)
+  stopifnot(floor_value <= 0.5)
 
-  floored <- pmax(raw, floor_value)
-  floored / sum(floored)
+  share_a <- min(max(probability_a_better, floor_value), 1 - floor_value)
+  c(a = share_a, b = 1 - share_a)
 }
