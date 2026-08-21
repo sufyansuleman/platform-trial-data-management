@@ -1,6 +1,6 @@
 ---
 title: "Central data monitoring report"
-subtitle: "Coordinating centre view — Synthetic Adaptive Platform Trial in Critical Illness"
+subtitle: "Coordinating centre view - Synthetic Adaptive Platform Trial in Critical Illness"
 format:
   html:
     theme: cosmo
@@ -84,7 +84,7 @@ knitr::kable(top)
 # Entry-delay drift
 
 No validation rule catches drift. Every record at a drifting site is perfectly
-valid — it was simply entered late, which is not a rule violation. Only the
+valid - it was simply entered late, which is not a rule violation. Only the
 trend across months shows a site falling further behind, and only measuring it
 against each site's **own** initiation shows that it is not merely a young site
 still settling in.
@@ -167,7 +167,7 @@ recall_display <- recall |>
 knitr::kable(recall_display)
 ```
 
-**Overall: `r sprintf("%.1f%%", 100 * recall_total$recall)`** —
+**Overall: `r sprintf("%.1f%%", 100 * recall_total$recall)`** - 
 `r recall_total$detected` of `r recall_total$scoreable_by_a_rule` defect records
 that a rule targets.
 
@@ -175,8 +175,8 @@ A further **`r recall_total$not_scoreable_monitoring_signals` records** belong t
 defect types that **no rule in this milestone targets**. They are reported as
 `n/a` rather than as 0%, because scoring a rule set against defects it was never
 written to catch would misrepresent it, and omitting them would misrepresent the
-defect catalogue. These are the statistical signals — entry drift, terminal-digit
-preference, adverse-event under-reporting — and the drift section above is the
+defect catalogue. These are the statistical signals - entry drift, terminal-digit
+preference, adverse-event under-reporting - and the drift section above is the
 first of them to be addressed.
 
 ## Findings not traceable to an injected defect

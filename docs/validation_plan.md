@@ -56,18 +56,18 @@ current figures are in the README and in the central monitoring report.
 
 Three injected defect types have no rule in this rule set: entry-delay
 drift, terminal-digit preference and adverse-event under-reporting. None of
-them can be detected in a single record — every individual record is valid —
+them can be detected in a single record - every individual record is valid - 
 and they are addressed by statistical monitoring instead. They are reported
 as not applicable rather than as failures, because scoring a rule set
 against defects it was never written to catch would misrepresent it.
 
 ## The rules
 
-### Structural — types, keys, required fields, referential integrity
+### Structural - types, keys, required fields, referential integrity
 
 Defined in `config/rules/structural.yml`.
 
-#### STR-001 — required field present
+#### STR-001 - required field present
 
 | | |
 |---|---|
@@ -80,7 +80,7 @@ Defined in `config/rules/structural.yml`.
 
 **Why it matters.** A required field is required because downstream analysis cannot proceed without it. Missingness concentrated at one site is a training or workload problem at that site, not a random accident, which is why the finding carries the site.
 
-#### STR-002 — participant known to randomisation
+#### STR-002 - participant known to randomisation
 
 | | |
 |---|---|
@@ -93,7 +93,7 @@ Defined in `config/rules/structural.yml`.
 
 **Why it matters.** A follow-up record for a participant who was never randomised means either the randomisation record is missing or the record belongs to someone else. Both are serious: the first loses a participant from the analysis, the second attributes data to the wrong person.
 
-#### STR-003 — participant id unique to one site
+#### STR-003 - participant id unique to one site
 
 | | |
 |---|---|
@@ -106,7 +106,7 @@ Defined in `config/rules/structural.yml`.
 
 **Why it matters.** An identifier issued at two sites collapses two people into one record in every join downstream. Nothing errors; the analysis simply describes a person who does not exist.
 
-#### STR-004 — single randomisation per domain
+#### STR-004 - single randomisation per domain
 
 | | |
 |---|---|
@@ -119,11 +119,11 @@ Defined in `config/rules/structural.yml`.
 
 **Why it matters.** A second allocation in the same domain means the participant may have received both interventions, or that one allocation was never acted on. Either way the analysis population is ambiguous and the site must say which allocation was followed.
 
-### Range — physiological plausibility
+### Range - physiological plausibility
 
 Defined in `config/rules/range.yml`.
 
-#### RNG-001 — weight plausible
+#### RNG-001 - weight plausible
 
 | | |
 |---|---|
@@ -136,7 +136,7 @@ Defined in `config/rules/range.yml`.
 
 **Why it matters.** Values above the plausible maximum are most often a units failure -- a pounds reading submitted as kilograms is roughly 2.2 times too high, which lands a typical adult above 160 kg. Values below it suggest a paediatric record or a transposition. Both warrant confirmation rather than deletion.
 
-#### RNG-002 — heart rate plausible
+#### RNG-002 - heart rate plausible
 
 | | |
 |---|---|
@@ -149,7 +149,7 @@ Defined in `config/rules/range.yml`.
 
 **Why it matters.** A sustained rate outside this range is incompatible with a patient who is recorded as alive on the same record. This is an entry error, not a physiological finding.
 
-#### RNG-003 — temperature plausible
+#### RNG-003 - temperature plausible
 
 | | |
 |---|---|
@@ -162,7 +162,7 @@ Defined in `config/rules/range.yml`.
 
 **Why it matters.** Values outside this range are almost always a unit confusion or a decimal slip. Genuine extremes of temperature are documented in the clinical record and confirmed on query rather than assumed from a single entry.
 
-#### RNG-004 — creatinine plausible
+#### RNG-004 - creatinine plausible
 
 | | |
 |---|---|
@@ -175,7 +175,7 @@ Defined in `config/rules/range.yml`.
 
 **Why it matters.** The upper bound admits severe untreated renal failure, which this population genuinely contains. A value above it, or an implausibly low one, more often indicates a mg/dL reading submitted as umol/L or the reverse.
 
-#### RNG-005 — age plausible
+#### RNG-005 - age plausible
 
 | | |
 |---|---|
@@ -188,7 +188,7 @@ Defined in `config/rules/range.yml`.
 
 **Why it matters.** An age below 18 is an eligibility violation as well as a data problem and must be escalated, not merely queried at the site.
 
-#### RNG-006 — severity score plausible
+#### RNG-006 - severity score plausible
 
 | | |
 |---|---|
@@ -201,11 +201,11 @@ Defined in `config/rules/range.yml`.
 
 **Why it matters.** A value off the scale means the wrong instrument was recorded, which invalidates any case-mix adjustment that uses it.
 
-### Logic — cross-field and cross-form consistency
+### Logic - cross-field and cross-form consistency
 
 Defined in `config/rules/logic.yml`.
 
-#### LOG-001 — no gap in daily records
+#### LOG-001 - no gap in daily records
 
 | | |
 |---|---|
@@ -218,7 +218,7 @@ Defined in `config/rules/logic.yml`.
 
 **Why it matters.** A missing day inside a stay is not the same as a discharge. Until it is resolved, the day is unknown, and the primary endpoint must treat it as unknown rather than as a day free of life support. Defaulting a gap to "no support recorded" inflates days alive without life support in proportion to how badly a site enters data, which turns a data-quality problem into an apparent treatment effect.
 
-#### LOG-002 — not alive after death
+#### LOG-002 - not alive after death
 
 | | |
 |---|---|
@@ -231,7 +231,7 @@ Defined in `config/rules/logic.yml`.
 
 **Why it matters.** The contradiction spans two forms, so neither form looks wrong on its own. One of the two is incorrect and the site must say which: the outcome form drives the primary analysis, and the daily records drive the endpoint.
 
-#### LOG-003 — death date requires dead status
+#### LOG-003 - death date requires dead status
 
 | | |
 |---|---|
@@ -244,7 +244,7 @@ Defined in `config/rules/logic.yml`.
 
 **Why it matters.** Vital status is the secondary outcome and the gate on the primary one. A status and a date that disagree make the participant's contribution to the analysis undefined.
 
-#### LOG-004 — life support requires alive
+#### LOG-004 - life support requires alive
 
 | | |
 |---|---|
@@ -257,7 +257,7 @@ Defined in `config/rules/logic.yml`.
 
 **Why it matters.** Support delivered to a participant recorded as dead on the same row is an internal contradiction within a single record, and the most likely explanation is that the alive flag was mis-entered rather than that the support was.
 
-#### LOG-005 — icu location present when in icu
+#### LOG-005 - icu location present when in icu
 
 | | |
 |---|---|
@@ -270,11 +270,11 @@ Defined in `config/rules/logic.yml`.
 
 **Why it matters.** The unit identifier is what makes a mid-stay transfer visible. Without it, a participant who moved between units is indistinguishable from one who did not, and transfers are a known source of duplicated daily records.
 
-### Temporal — date sequencing
+### Temporal - date sequencing
 
 Defined in `config/rules/temporal.yml`.
 
-#### TMP-001 — discharge not before admission
+#### TMP-001 - discharge not before admission
 
 | | |
 |---|---|
@@ -287,7 +287,7 @@ Defined in `config/rules/temporal.yml`.
 
 **Why it matters.** An impossible ordering means one of the two dates is wrong, and length of stay derived from them is meaningless until the site says which.
 
-#### TMP-002 — death not before randomisation
+#### TMP-002 - death not before randomisation
 
 | | |
 |---|---|
@@ -300,7 +300,7 @@ Defined in `config/rules/temporal.yml`.
 
 **Why it matters.** A death before allocation means the participant was never eligible to be randomised, or the death date belongs to a different record. Either invalidates the participant's contribution to the primary outcome.
 
-#### TMP-003 — entry not before event
+#### TMP-003 - entry not before event
 
 | | |
 |---|---|
@@ -313,7 +313,7 @@ Defined in `config/rules/temporal.yml`.
 
 **Why it matters.** Entry before the event indicates a mistyped event date or a record completed in advance. Records completed in advance are a documented route to fabricated observations and must be queried, not silently accepted.
 
-#### TMP-004 — ae onset before randomisation
+#### TMP-004 - ae onset before randomisation
 
 | | |
 |---|---|
@@ -326,7 +326,7 @@ Defined in `config/rules/temporal.yml`.
 
 **Why it matters.** An AE preceding randomisation is not attributable to the trial intervention and indicates a data entry or linkage error.
 
-#### TMP-005 — screening not after randomisation
+#### TMP-005 - screening not after randomisation
 
 | | |
 |---|---|
@@ -339,11 +339,11 @@ Defined in `config/rules/temporal.yml`.
 
 **Why it matters.** Allocation before eligibility was confirmed is a protocol deviation as well as a data problem, and is reportable as such.
 
-### Cross-domain — participants entered in more than one domain
+### Cross-domain - participants entered in more than one domain
 
 Defined in `config/rules/cross_domain.yml`.
 
-#### XDM-001 — death date consistent across domains
+#### XDM-001 - death date consistent across domains
 
 | | |
 |---|---|
@@ -356,7 +356,7 @@ Defined in `config/rules/cross_domain.yml`.
 
 **Why it matters.** A person dies once. Two domains reporting different death dates means at least one primary outcome is wrong, and because each domain is analysed separately the error would otherwise never surface.
 
-#### XDM-002 — icu admission consistent across domains
+#### XDM-002 - icu admission consistent across domains
 
 | | |
 |---|---|
@@ -369,7 +369,7 @@ Defined in `config/rules/cross_domain.yml`.
 
 **Why it matters.** Admission anchors length of stay and the daily record timeline. Domains disagreeing about it means the same daily records are being interpreted against two different day-zero definitions.
 
-#### XDM-003 — vital status consistent where windows agree
+#### XDM-003 - vital status consistent where windows agree
 
 | | |
 |---|---|

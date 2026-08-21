@@ -96,7 +96,7 @@ actions <- site_actions(site_finding_rows, site_endpoint, site_completeness)
 if (nrow(actions)) {
   for (i in seq_len(nrow(actions))) {
     count <- if (is.na(actions$records[i])) "" else
-      paste0(" — **", plural(actions$records[i], "record"), "**")
+      paste0(" - **", plural(actions$records[i], "record"), "**")
     cat(sprintf("%d. **%s**%s  \n    %s\n\n",
                 actions$priority[i], actions$action[i], count, actions$why[i]))
   }

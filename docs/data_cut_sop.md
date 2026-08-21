@@ -33,7 +33,7 @@ reasons:
 
 A participant-domain record enters the cut when:
 
-- The participant was randomised into that domain on or before `as_of_date − 30 days`, so
+- The participant was randomised into that domain on or before `as_of_date - 30 days`, so
   their 30-day window has closed; **and**
 - The randomisation record carries a randomisation date and time, without which no window
   can be anchored.
@@ -61,12 +61,12 @@ partial outcome.
 
 Every cut carries a manifest recording:
 
-- **Cut identity** — cut ID, as-of date, creation timestamp (UTC)
-- **Contents** — participant count by site and by domain; row count by form
-- **Integrity** — SHA-256 of every file in the cut
-- **Provenance** — git commit SHA of the code, `renv.lock` hash, R version, versions of
+- **Cut identity** - cut ID, as-of date, creation timestamp (UTC)
+- **Contents** - participant count by site and by domain; row count by form
+- **Integrity** - SHA-256 of every file in the cut
+- **Provenance** - git commit SHA of the code, `renv.lock` hash, R version, versions of
   every package used, rule-set version
-- **Data quality at the moment of freezing** — findings by severity, endpoint
+- **Data quality at the moment of freezing** - findings by severity, endpoint
   completeness, and the count of records that are not evaluable
 
 The provenance block is what makes the cut reproducible rather than merely archived. A
@@ -127,14 +127,14 @@ depends on.
   configuration hash so this is detected, not silently absorbed.
 - A package upgrade that changes numerical output. The manifest records package versions;
   `renv.lock` restores them.
-- Any non-deterministic step — an unseeded random draw, a timestamp inside the data, a
+- Any non-deterministic step - an unseeded random draw, a timestamp inside the data, a
   hash of an unordered set. None may be introduced. See DEC-009 for why the analysis layer
   avoids MCMC sampling for the same reason.
 
 ## 8. Retrospective edits to frozen data
 
 A site can edit a value that is already inside a frozen cut. The cut itself does not
-change — it cannot, or it would not be a cut — but the discrepancy must be **detected and
+change - it cannot, or it would not be a cut - but the discrepancy must be **detected and
 reported**, because an analysis has already been run on the superseded value.
 
 Successive exports are compared against the frozen cut. Any value that differs is raised
@@ -143,7 +143,7 @@ value and the cut affected. This is implemented in Milestone 2.3 and surfaced
 prominently in the central monitoring report.
 
 A retrospective edit to locked data is a serious finding in a regulated trial. It is not
-necessarily misconduct — it is usually a site correcting a genuine error — but it means a
+necessarily misconduct - it is usually a site correcting a genuine error - but it means a
 committee made a decision on a value that no longer exists, and somebody has to decide
 whether that changes anything.
 

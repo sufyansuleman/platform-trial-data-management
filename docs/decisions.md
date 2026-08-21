@@ -5,19 +5,19 @@ reasoning and the alternative that was rejected. Newest entries at the bottom.
 
 ---
 
-## 2026-08-20 — DEC-001: `dplyr` rather than `data.table`
+## 2026-08-20 - DEC-001: `dplyr` rather than `data.table`
 
 **Decision.** The data-manipulation grammar for this repository is `dplyr` (with `tidyr`
 for reshaping). Used consistently; no `data.table` anywhere.
 
 **Reasoning.** The specification requires one or the other, consistently. This repository
-is written to be *read* — by a hiring panel, and notionally by a trial manager or
+is written to be *read* - by a hiring panel, and notionally by a trial manager or
 clinician checking that a derived endpoint means what they think it means. `dplyr`'s
 verb pipeline reads close to prose, which matters more here than throughput. The whole
 dataset is ~2,500 participants and well under a million rows, so `data.table`'s
 performance advantage is irrelevant at this scale.
 
-**Rejected alternative.** `data.table` — faster and lighter on dependencies, and the
+**Rejected alternative.** `data.table` - faster and lighter on dependencies, and the
 better choice if this pipeline ever had to process tens of millions of rows. Its
 `DT[i, j, by]` idiom is denser and less obvious to a reader who does not already know it.
 If scale ever became the constraint, the ingest and validate layers are the places to
@@ -25,32 +25,32 @@ port first.
 
 ---
 
-## 2026-08-20 — DEC-002: Parquet for intermediate storage, CSV only at the EDC boundary
+## 2026-08-20 - DEC-002: Parquet for intermediate storage, CSV only at the EDC boundary
 
 **Decision.** `data/raw/` holds CSV, because that is what a real EDC export looks like
 and it is where the messy country-specific formatting problems live. Everything
 downstream (`data/interim/`, `data/cuts/`) is Parquet via `arrow`.
 
-**Reasoning.** CSV at the boundary is realistic and is the *point* — date formats,
+**Reasoning.** CSV at the boundary is realistic and is the *point* - date formats,
 decimal separators and encodings are only ambiguous because CSV is untyped. Once ingest
 has resolved that ambiguity, persisting the resolution in a typed, self-describing
 format means no downstream stage can silently re-introduce a coercion bug. Parquet also
 hashes stably for the data-cut manifests in Milestone 2.
 
-**Rejected alternative.** RDS — simpler, no `arrow` dependency, but R-only and opaque to
+**Rejected alternative.** RDS - simpler, no `arrow` dependency, but R-only and opaque to
 anyone inspecting a frozen cut with other tooling.
 
 ---
 
-## 2026-08-20 — DEC-003: Prefer CRAN binaries over newest-version source builds
+## 2026-08-20 - DEC-003: Prefer CRAN binaries over newest-version source builds
 
 **Decision.** Package installation requests the newest available *binary* build
 (`pkgType = "binary"`), falling back to a source build only where no binary exists for
 this platform. Exact resolved versions are pinned in `renv.lock` as normal.
 
 **Reasoning.** The development machine runs R 4.4, which CRAN now classifies as *oldrel*
-and no longer builds fresh Windows binaries for. `renv`'s default — take the newest
-version on CRAN — therefore silently selects source-only releases and compiles them.
+and no longer builds fresh Windows binaries for. `renv`'s default - take the newest
+version on CRAN - therefore silently selects source-only releases and compiles them.
 Measured on this machine, `igraph` 2.3.3 (the newest source release; the R 4.4 binary is
 frozen at 2.3.0) reached 386 of ~1,726 object files in 30 minutes, extrapolating to
 roughly two hours for one dependency of `targets`. `arrow` would repeat the problem.
@@ -74,29 +74,29 @@ has no binary on the runner, CI absorbs a one-off compile. Acceptable, and cache
 
 ---
 
-## 2026-08-20 — DEC-004: `renv` snapshot type `all`, not the default `implicit`
+## 2026-08-20 - DEC-004: `renv` snapshot type `all`, not the default `implicit`
 
 **Decision.** `renv::settings$snapshot.type("all")`. The lockfile records every package in
 the project library, not only those detected in project code.
 
 **Reasoning.** renv's default, `implicit`, builds the lockfile by scanning project `.R`
 and `.qmd` files for `library()` / `require()` / `::` calls. At bootstrap there is no code
-yet, so the first `renv::snapshot()` produced a lockfile containing exactly one package —
-`renv` itself — despite twelve having been installed. A clean clone running
+yet, so the first `renv::snapshot()` produced a lockfile containing exactly one package - 
+`renv` itself - despite twelve having been installed. A clean clone running
 `renv::restore()` would have installed nothing and the pipeline would have failed at the
 first `library()` call. The specification's definition of done (§9) requires
 `renv::restore()` on a fresh clone to work, so the lockfile must describe the environment
 that was actually tested, independently of whether static analysis can see every usage.
 
-`implicit` also has a subtler failure mode for this project: packages loaded indirectly —
+`implicit` also has a subtler failure mode for this project: packages loaded indirectly - 
 `arrow` invoked only through a `targets` format declaration, or a Quarto report's engine
-dependencies — are easy for the scanner to miss, producing a lockfile that restores an
+dependencies - are easy for the scanner to miss, producing a lockfile that restores an
 environment where the pipeline does not actually run.
 
 **Rejected alternative.** Keep `implicit` and rely on code scanning once the R sources
 exist. Smaller, tidier lockfiles that document real usage, and it is renv's recommended
 default for good reason. Rejected because a lockfile that is silently incomplete is a
-reproducibility failure that surfaces only on someone else's machine — precisely the
+reproducibility failure that surfaces only on someone else's machine - precisely the
 failure this repository is meant to demonstrate competence against.
 
 **Cost accepted.** The lockfile carries transitive dependencies that could in principle be
@@ -105,7 +105,7 @@ size is not a real cost.
 
 ---
 
-## 2026-08-20 — DEC-005: `alive` is 1 on the day of death, and no daily records follow it
+## 2026-08-20 - DEC-005: `alive` is 1 on the day of death, and no daily records follow it
 
 **Decision.** In `daily_icu`, `alive = 1` on the calendar day the participant died,
 because they were alive for part of it. No daily record exists for any day after the
@@ -124,15 +124,15 @@ indistinguishable from the day after in any rule that does not also read `death_
 
 ---
 
-## 2026-08-20 — DEC-006: absence of a daily record is not absence of life support
+## 2026-08-20 - DEC-006: absence of a daily record is not absence of life support
 
 **Decision.** A missing `daily_icu` row means one of two different things, and the
 pipeline must distinguish them:
 
-- **Outside a documented ICU stay** — after discharge alive, before readmission — the
+- **Outside a documented ICU stay** - after discharge alive, before readmission - the
   participant is treated as alive and free of life support. The discharge record is
   positive evidence.
-- **Inside an ICU stay** — a gap between two days that both have records — the day is
+- **Inside an ICU stay** - a gap between two days that both have records - the day is
   **unknown**, not "free of support".
 
 **Reasoning.** This is the single most consequential convention in the repository, which
@@ -155,10 +155,10 @@ on absent data rather than being handed a single confident-looking integer.
 
 ---
 
-## 2026-08-20 — DEC-007: one export file per site per form
+## 2026-08-20 - DEC-007: one export file per site per form
 
-**Decision.** The simulated EDC export writes `data/raw/<form>/<site_id>.csv` — 125 files
-— rather than one file per form.
+**Decision.** The simulated EDC export writes `data/raw/<form>/<site_id>.csv` - 125 files
+ - rather than one file per form.
 
 **Reasoning.** Local conventions are a property of the site, not the form. A single
 `screening.csv` cannot simultaneously be Latin-1 for DK-03 and UTF-8 for everyone else,
@@ -172,7 +172,7 @@ answer, which defeats the exercise.
 
 ---
 
-## 2026-08-20 — DEC-008: starting and continuing life support are modelled separately
+## 2026-08-20 - DEC-008: starting and continuing life support are modelled separately
 
 **Decision.** A life-support trajectory is generated from two distinct probabilities:
 the probability of *starting* support (logistic in baseline severity, tapering with each
@@ -184,7 +184,7 @@ folded in as `p + (1 - p) * persistence`. That expression pushes the daily proba
 toward 1 as soon as support begins, so in practice nobody ever weaned: renal replacement
 ran on 53.6% of all ICU-days against a day-0 rate of 30.5%, and only **5.5%** of ICU-days
 were free of all three supports. Days alive without life support would then have been
-close to zero for nearly every participant — an endpoint with no variance to detect a
+close to zero for nearly every participant - an endpoint with no variance to detect a
 treatment effect in, and one whose few non-zero values would be driven by length of stay
 rather than by recovery.
 
@@ -196,20 +196,20 @@ renal replacement, with 21.9% of ICU-days free of all support.
 
 **Rejected alternative.** Keeping one probability and lowering the intercepts until the
 marginal rates looked right. It would have matched the day-0 targets while leaving the
-duration structure wrong — support would still never stop, just start less often. The
+duration structure wrong - support would still never stop, just start less often. The
 endpoint would still have been degenerate, and the error would have been invisible in any
 summary that did not look at episode length.
 
 **Note for the derived endpoint.** This is the generator, not the analysis. The endpoint
-in `R/derive/` must not assume any of this structure — it reads the daily records as
+in `R/derive/` must not assume any of this structure - it reads the daily records as
 given, including their gaps. See DEC-006.
 
 ---
 
-## 2026-08-20 — DEC-009: conjugate models and `adaptr`, not Stan
+## 2026-08-20 - DEC-009: conjugate models and `adaptr`, not Stan
 
 **Decision.** The Bayesian analysis layer (spec Part 2) uses closed-form conjugate models
-— beta-binomial for binary outcomes, normal-normal for the continuous primary endpoint —
+ - beta-binomial for binary outcomes, normal-normal for the continuous primary endpoint - 
 with `adaptr` for design operating characteristics. Neither `brms` nor `rstanarm` is a
 dependency.
 
@@ -232,10 +232,10 @@ Runtime matters too: `rstan` compiles models with Rtools, and the definition of 
 requires a clean run in under five minutes with CI on every push.
 
 **Rejected alternatives.**
-- *`rstanarm`* — ships precompiled models, so no runtime compile, and would permit genuine
+- *`rstanarm`* - ships precompiled models, so no runtime compile, and would permit genuine
   covariate adjustment. The right choice if the SAP required an adjusted model with
   partial pooling across sites. It does not.
-- *`brms`* — most flexible and most idiomatic for hierarchical models, but compiles each
+- *`brms`* - most flexible and most idiomatic for hierarchical models, but compiles each
   model at runtime, which would make CI slow and fragile for no analytical gain here.
 
 **Consequence accepted.** Covariate adjustment is limited to what a conjugate form
@@ -245,7 +245,7 @@ revisited and `rstanarm` is the fallback. That trigger is recorded here delibera
 
 ---
 
-## 2026-08-20 — DEC-010: the exported value is the value of record, and conversion is lossy
+## 2026-08-20 - DEC-010: the exported value is the value of record, and conversion is lossy
 
 **Decision.** After ingest, the value of record is the value that came out of the site's
 export, converted to internal units. The pre-export value inside the simulator is not
@@ -260,8 +260,8 @@ It is what actually happens when a site records a value in its own units at its 
 precision, and the exported figure is the one the site can attest to.
 
 Asserting bit equality would therefore be asserting something false about the data flow.
-The tolerance is set well below clinical relevance — 0.023 kg is a fortieth of a
-kilogram — and the conformance log records every conversion, so the provenance of the
+The tolerance is set well below clinical relevance - 0.023 kg is a fortieth of a
+kilogram - and the conformance log records every conversion, so the provenance of the
 difference is never mysterious.
 
 **Consequence for later milestones.** Data cuts are taken *after* ingest, so the
@@ -271,29 +271,29 @@ step sits upstream of the cut, not inside it.
 
 ---
 
-## 2026-08-20 — DEC-011: identifiers are never blanked by the missing-data injector
+## 2026-08-20 - DEC-011: identifiers are never blanked by the missing-data injector
 
 **Decision.** `blankable_fields()` excludes any field whose name ends in `_id`, in
 addition to the record key and `entry_date`.
 
 **Reasoning.** The first version derived blankable fields as "required and not in the
-key", which for `daily_icu` — keyed on `participant_id` plus `icu_day` — left
+key", which for `daily_icu` - keyed on `participant_id` plus `icu_day` - left
 `record_id` eligible. Blanking it produced records with no identifier, which is not a
 missing-value defect at all: it is an unlinkable orphan, needing a different rule and a
 different remediation. It also broke every downstream ordering silently, which is how it
-surfaced — the export/ingest round trip stopped matching because rows could no longer be
+surfaced - the export/ingest round trip stopped matching because rows could no longer be
 aligned by key, and two unrelated fields appeared to be corrupted.
 
 `entry_date` is excluded because the EDC stamps it rather than a human typing it, so it
 cannot be blank at entry.
 
-**Worth noting as a general lesson.** The bug was invisible in every summary statistic —
+**Worth noting as a general lesson.** The bug was invisible in every summary statistic - 
 row counts, defect counts and the conformance log all looked correct. It was only visible
 in an invariant test that compared data against itself through a round trip.
 
 ---
 
-## 2026-08-20 — DEC-012: endpoint window is days 0-29; death on day 30 is inside it
+## 2026-08-20 - DEC-012: endpoint window is days 0-29; death on day 30 is inside it
 
 **Decision.** Days alive without life support counts days 0 to 29 inclusive, where day 0
 is the day of randomisation into *that domain*. Death on or before day 30 scores 0; death
@@ -312,7 +312,7 @@ the first randomisation would mis-score the second. This is tested directly.
 
 ---
 
-## 2026-08-20 — DEC-013: leaving the ICU is what ends life support, not leaving hospital
+## 2026-08-20 - DEC-013: leaving the ICU is what ends life support, not leaving hospital
 
 **Decision.** A day with no ICU record counts as alive and free of life support when it
 falls after the participant's last ICU record, or after a documented hospital discharge.
@@ -341,7 +341,7 @@ stay. That distinction is tested.
 
 ---
 
-## 2026-08-20 — DEC-014: the endpoint reports its own completeness
+## 2026-08-20 - DEC-014: the endpoint reports its own completeness
 
 **Decision.** `derive_days_alive_without_life_support()` returns `unknown_days`,
 `conflicting_days` and `complete` alongside the count, and `summarise_dawols()` reports
@@ -364,7 +364,7 @@ signal that tells a coordinator which site to call.
 
 ---
 
-## 2026-08-20 — DEC-015: monitoring reports are self-contained and rendered in parallel
+## 2026-08-20 - DEC-015: monitoring reports are self-contained and rendered in parallel
 
 **Decision.** Every report embeds its own resources (`embed-resources: true`) and the 25
 site reports are rendered across four worker processes, each working on its own copy of
@@ -372,8 +372,8 @@ the document.
 
 **Reasoning.** Rendered serially, 25 site reports plus the central report took **seven
 minutes**, against a five-minute budget for the whole clean-machine run in the
-specification's definition of done. Almost all of that time is per-render R startup —
-loading packages and sourcing `R/` — so the work parallelises nearly linearly. Four
+specification's definition of done. Almost all of that time is per-render R startup - 
+loading packages and sourcing `R/` - so the work parallelises nearly linearly. Four
 workers brought it to **3.6 minutes**.
 
 Self-containment costs about three seconds per report and takes the total to 52 MB, and
@@ -395,7 +395,7 @@ times.
 
 ---
 
-## 2026-08-20 — DEC-016: site comparison is normalised by time since initiation
+## 2026-08-20 - DEC-016: site comparison is normalised by time since initiation
 
 **Decision.** Wherever a site is compared against the others, the horizontal axis is
 months since **that site's own initiation**, not calendar time.
@@ -403,7 +403,7 @@ months since **that site's own initiation**, not calendar time.
 **Reasoning.** Sites opened across a 13-month span: 15 Danish sites from January 2024, and
 the Dutch, Swedish, Finnish and Icelandic sites from October 2024 onward. On a calendar
 axis a site in its second month is set against sites in their twentieth, and the young
-site looks worse at everything — fewer participants, less complete follow-up, shorter
+site looks worse at everything - fewer participants, less complete follow-up, shorter
 history. That comparison is unfair and, worse, useless: everyone already knows the site is
 new, so the chart carries no information a coordinator can act on.
 
@@ -419,7 +419,7 @@ younger than the Danish cohort; against its own initiation it is unmistakable.
 
 ---
 
-## 2026-08-21 — DEC-017: cuts include incomplete records, and say so
+## 2026-08-21 - DEC-017: cuts include incomplete records, and say so
 
 **Decision.** A participant-domain record enters a data cut when its 30-day window has
 closed on or before the as-of date and it has a randomisation datetime to anchor that
@@ -445,7 +445,7 @@ biased one.
 
 ---
 
-## 2026-08-21 — DEC-018: cut files are hashed from disk, after writing
+## 2026-08-21 - DEC-018: cut files are hashed from disk, after writing
 
 **Decision.** `make_cut()` writes every file, then computes SHA-256 by reading each file
 back from disk, then records those hashes in the manifest. The order is not
@@ -469,14 +469,14 @@ pass forever while proving nothing at all.
 
 ---
 
-## 2026-08-21 — DEC-019: normal approximation for the primary outcome
+## 2026-08-21 - DEC-019: normal approximation for the primary outcome
 
 **Decision.** Days alive without life support is analysed with a normal-normal conjugate
 model on the arm means, with the residual standard deviation estimated from the pooled
 data and held fixed.
 
 **Reasoning.** The outcome is plainly not normal. It is bounded at 0 and 30, and it is
-heavily zero-inflated because every death within the window scores 0 — roughly a third of
+heavily zero-inflated because every death within the window scores 0 - roughly a third of
 participants in this population. A histogram of it looks nothing like a bell.
 
 That does not matter for what the decision rules actually read, which is a **difference in
@@ -491,7 +491,7 @@ difference of means is small relative to the uncertainty in the means themselves
 
 **What would make this wrong.** A domain with very few participants, where the normal
 approximation to the difference has not yet taken hold; or a treatment that changes the
-*shape* of the distribution rather than its centre — for example one that converts deaths
+*shape* of the distribution rather than its centre - for example one that converts deaths
 into long survivals with prolonged support, moving mass from 0 to the middle without moving
 the mean much. The second is a real possibility in critical care, and it is the reason
 mortality is analysed separately as its own outcome rather than being trusted to show up in
@@ -505,10 +505,10 @@ in days, which a rank statistic cannot speak to.
 
 ---
 
-## 2026-08-21 — DEC-020: only the primary outcome may stop a domain
+## 2026-08-21 - DEC-020: only the primary outcome may stop a domain
 
-**Decision.** Secondary outcomes — 30-day and 90-day mortality, days alive out of hospital
-— are reported with full posterior quantities but never trigger a stopping decision. Only
+**Decision.** Secondary outcomes - 30-day and 90-day mortality, days alive out of hospital
+ - are reported with full posterior quantities but never trigger a stopping decision. Only
 days alive without life support does.
 
 **Reasoning.** An adaptive trial's characteristic failure is stopping early on a chance
@@ -522,7 +522,7 @@ trial costs error control.
 
 ---
 
-## 2026-08-21 — DEC-021: the SAP is committed before the analysis code
+## 2026-08-21 - DEC-021: the SAP is committed before the analysis code
 
 **Decision.** `docs/statistical_analysis_plan.md`, `config/priors.yml` and
 `config/decision_rules.yml` are committed in a change that contains **no analysis code at

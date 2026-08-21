@@ -19,7 +19,7 @@ Data manipulation uses `dplyr` throughout ([DEC-001](docs/decisions.md)).
 ## What this is
 
 A pipeline that takes messy, multi-country clinical trial data exports and turns them
-into a validated analysis dataset — then tells a coordinator, in plain language, what to
+into a validated analysis dataset - then tells a coordinator, in plain language, what to
 fix.
 
 It simulates **2,549 participants** across **25 sites in 5 countries**, running **3
@@ -89,7 +89,7 @@ Full SOP: [docs/validation_plan.md](docs/validation_plan.md).
 ### The rules are scored, not trusted
 
 The pipeline injects a catalogue of known defects and records ground truth for every one,
-so the engine's performance is **measured rather than asserted** — including what it
+so the engine's performance is **measured rather than asserted** - including what it
 misses.
 
 | Defect | Rule | Injected | Detected | Recall |
@@ -114,7 +114,7 @@ misses.
 Three points of honesty in that table:
 
 - **D11 at 74.2% is a genuine limitation.** A pounds reading submitted as kilograms is
-  only implausible if the patient was heavy enough — 60 kg × 2.2 = 132 kg sits inside any
+  only implausible if the patient was heavy enough - 60 kg × 2.2 = 132 kg sits inside any
   defensible plausibility bound. The rest needs a site-level distribution check, not a
   row rule.
 - **D09, D10 and D12 are `n/a`, not 0%.** No rule in this milestone targets them. Scoring
@@ -128,14 +128,14 @@ Three points of honesty in that table:
 ### The endpoint has more tests than anything else
 
 `days_alive_without_life_support` is the number an adaptive stopping decision reads. An
-error in it does not produce a wrong report — it produces a wrong decision about whether
+error in it does not produce a wrong report - it produces a wrong decision about whether
 to keep randomising patients. It therefore has **40 tests**, written before the function,
 covering death at days 0, 1, 29, 30 and 31; partial days; interior gaps; ICU transfers;
 discharge and readmission; support beginning exactly at the 30-day boundary; conflicting
 duplicate records; and multi-domain windows anchored to different randomisation dates.
 
 The consequential decision is what a **missing** day means. A day with no record is
-`unknown`, never "free of support" — unless a documented discharge explains it. Crediting
+`unknown`, never "free of support" - unless a documented discharge explains it. Crediting
 unexplained gaps would inflate the endpoint in proportion to how badly a site enters its
 data, turning a data-quality problem into an apparent treatment effect
 ([DEC-006](docs/decisions.md)).
@@ -169,7 +169,7 @@ pipeline**, naming the site, the field and the offending values.
 ### Drift is caught by trends, not rules
 
 No validation rule can catch a site getting slower. Every record at a drifting site is
-perfectly valid — it was simply entered late, which is not a rule violation. Fitting a
+perfectly valid - it was simply entered late, which is not a rule violation. Fitting a
 slope to each site's median entry delay, measured against **its own initiation date**
 rather than calendar time, identifies SE-02 at **1.69 days per month** against 0.18 for
 the next worst site. That is the injected D09 defect, found by the only method that can
@@ -178,7 +178,7 @@ find it.
 ## Reports
 
 `scripts/render_reports.R` produces one report per site plus a central report for the
-coordinating centre. **The actionable list comes first and the charts come second** — a
+coordinating centre. **The actionable list comes first and the charts come second** - a
 monitoring report is a work instruction, not a dashboard.
 
 Each site report opens with "what to do this week": ranked by consequence, not by count,
@@ -203,16 +203,16 @@ fields.
 
 ## Documentation
 
-- **[docs/decisions.md](docs/decisions.md)** — a dated log of every design judgement, with
+- **[docs/decisions.md](docs/decisions.md)** - a dated log of every design judgement, with
   the reasoning and the alternative rejected. The most useful file in the repository for
   understanding how the thing was built, including the bugs found and what they taught.
-- [docs/data_dictionary.md](docs/data_dictionary.md) — every field, generated from the
+- [docs/data_dictionary.md](docs/data_dictionary.md) - every field, generated from the
   schemas so it cannot drift
-- [docs/validation_plan.md](docs/validation_plan.md) — SOP-style: every rule, its
+- [docs/validation_plan.md](docs/validation_plan.md) - SOP-style: every rule, its
   rationale, its severity, and what happens when it fires
-- [docs/data_cut_sop.md](docs/data_cut_sop.md) — how a frozen cut is produced, verified
+- [docs/data_cut_sop.md](docs/data_cut_sop.md) - how a frozen cut is produced, verified
   and reproduced
 
 ## Licence
 
-MIT — see [LICENSE](LICENSE).
+MIT - see [LICENSE](LICENSE).

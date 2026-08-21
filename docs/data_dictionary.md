@@ -6,7 +6,7 @@ Every field in every form, with its type, whether it is required, and the
 constraints the schema enforces. These are the **hard bounds**: a value
 outside them is certainly wrong. The tighter *plausibility* bounds that
 generate queries live in [validation_plan.md](validation_plan.md) and are
-deliberately narrower — see rule RNG-001 for why.
+deliberately narrower - see rule RNG-001 for why.
 
 ## Conventions
 
@@ -35,11 +35,11 @@ deliberately narrower — see rule RNG-001 for why.
 | `participant_id` | character | yes | matches `^P-[0-9]{6}$` | Participant. |
 | `site_id` | character | yes | matches `^[A-Z]{2}-[0-9]{2}$` | Reporting site. |
 | `ae_code` | code | yes | one of: `AE-BLEED`, `AE-THROMB`, `AE-INFECT`, `AE-ARRHY`, `AE-AKI`, `AE-HYPOT`, `AE-ALLERG`, `AE-PNEU`, `AE-DELIR`, `AE-HYPER` | Coded adverse event term. No free text by design. |
-| `onset_date` | date | yes | — | Date of adverse event onset. |
+| `onset_date` | date | yes | - | Date of adverse event onset. |
 | `serious` | code | yes | one of: `0`, `1` | Meets seriousness criteria. |
 | `related` | code | yes | one of: `0`, `1`, `2` | Relatedness to trial intervention, 0 not related 1 possibly 2 probably. |
-| `entry_date` | date | yes | — | Date the record was entered into the EDC. |
-| `site_name` | character | no | — | Site label as exported by the site, denormalised. Subject to encoding damage. |
+| `entry_date` | date | yes | - | Date the record was entered into the EDC. |
+| `site_name` | character | no | - | Site label as exported by the site, denormalised. Subject to encoding damage. |
 
 ## `daily_icu`
 
@@ -53,7 +53,7 @@ deliberately narrower — see rule RNG-001 for why.
 | `participant_id` | character | yes | matches `^P-[0-9]{6}$` | Participant. |
 | `site_id` | character | yes | matches `^[A-Z]{2}-[0-9]{2}$` | Site holding the participant on this day. |
 | `icu_day` | integer | yes | 0 to 90 | Days since first randomisation. |
-| `record_date` | date | yes | — | Calendar date the day refers to. |
+| `record_date` | date | yes | - | Calendar date the day refers to. |
 | `alive` | code | yes | one of: `0`, `1` | Alive at any point during this day. |
 | `in_icu` | code | yes | one of: `0`, `1` | Present in an ICU during this day. |
 | `mechanical_ventilation` | code | yes | one of: `0`, `1` | Invasive mechanical ventilation received. |
@@ -62,8 +62,8 @@ deliberately narrower — see rule RNG-001 for why.
 | `icu_location` | character | no | matches `^[A-Z]{2}-[0-9]{2}-ICU[0-9]$` | ICU unit identifier, blank when not in ICU. |
 | `heart_rate` | integer | no | 20 to 220 | Heart rate in beats per minute. |
 | `temperature_c` | number | no | 30 to 43 | Core temperature in Celsius. |
-| `entry_date` | date | yes | — | Date the record was entered into the EDC. |
-| `site_name` | character | no | — | Site label as exported by the site, denormalised. Subject to encoding damage. |
+| `entry_date` | date | yes | - | Date the record was entered into the EDC. |
+| `site_name` | character | no | - | Site label as exported by the site, denormalised. Subject to encoding damage. |
 
 ## `outcome_30d`
 
@@ -77,11 +77,11 @@ deliberately narrower — see rule RNG-001 for why.
 | `domain` | code | yes | one of: `FLUID`, `ANTICOAG`, `BUFFER` | Domain this outcome belongs to. |
 | `site_id` | character | yes | matches `^[A-Z]{2}-[0-9]{2}$` | Reporting site. |
 | `vital_status_30d` | code | yes | one of: `alive`, `dead`, `unknown` | Vital status 30 days after randomisation in this domain. |
-| `death_date` | date | no | — | Date of death, blank if alive at 30 days. |
-| `icu_admission_date` | date | yes | — | First ICU admission date. |
-| `hospital_discharge_date` | date | no | — | Hospital discharge date, blank if still admitted or died. |
-| `entry_date` | date | yes | — | Date the record was entered into the EDC. |
-| `site_name` | character | no | — | Site label as exported by the site, denormalised. Subject to encoding damage. |
+| `death_date` | date | no | - | Date of death, blank if alive at 30 days. |
+| `icu_admission_date` | date | yes | - | First ICU admission date. |
+| `hospital_discharge_date` | date | no | - | Hospital discharge date, blank if still admitted or died. |
+| `entry_date` | date | yes | - | Date the record was entered into the EDC. |
+| `site_name` | character | no | - | Site label as exported by the site, denormalised. Subject to encoding damage. |
 
 ## `randomisation`
 
@@ -95,11 +95,11 @@ deliberately narrower — see rule RNG-001 for why.
 | `participant_id` | character | yes | matches `^P-[0-9]{6}$` | Participant randomised. |
 | `site_id` | character | yes | matches `^[A-Z]{2}-[0-9]{2}$` | Randomising site. |
 | `domain` | code | yes | one of: `FLUID`, `ANTICOAG`, `BUFFER` | Platform domain. |
-| `arm` | character | yes | — | Allocated arm within the domain. |
-| `randomisation_datetime` | datetime | yes | — | Date and time of allocation. |
-| `allocation_ratio` | character | yes | — | Allocation ratio in force at the time, written as a:b. |
-| `entry_date` | date | yes | — | Date the record was entered into the EDC. |
-| `site_name` | character | no | — | Site label as exported by the site, denormalised. Subject to encoding damage. |
+| `arm` | character | yes | - | Allocated arm within the domain. |
+| `randomisation_datetime` | datetime | yes | - | Date and time of allocation. |
+| `allocation_ratio` | character | yes | - | Allocation ratio in force at the time, written as a:b. |
+| `entry_date` | date | yes | - | Date the record was entered into the EDC. |
+| `site_name` | character | no | - | Site label as exported by the site, denormalised. Subject to encoding damage. |
 
 ## `screening`
 
@@ -112,7 +112,7 @@ deliberately narrower — see rule RNG-001 for why.
 | `screening_id` | character | yes | matches `^SCR-[0-9]{6}$` | Screening record identifier. |
 | `participant_id` | character | no | matches `^P-[0-9]{6}$` | Assigned only if the patient was enrolled, blank otherwise. |
 | `site_id` | character | yes | matches `^[A-Z]{2}-[0-9]{2}$` | Screening site. |
-| `screening_date` | date | yes | — | Date of screening assessment. |
+| `screening_date` | date | yes | - | Date of screening assessment. |
 | `age_years` | integer | yes | 18 to 120 | Age at screening. |
 | `sex` | code | yes | one of: `F`, `M` | Recorded sex. |
 | `weight_kg` | number | yes | 30 to 250 | Body weight, normalised to kg at ingest. |
@@ -122,8 +122,8 @@ deliberately narrower — see rule RNG-001 for why.
 | `elig_consent` | code | yes | one of: `0`, `1` | Consent obtained. |
 | `elig_no_exclusion` | code | yes | one of: `0`, `1` | Free of all exclusion criteria. |
 | `enrolled` | code | yes | one of: `0`, `1` | Proceeded to randomisation. |
-| `entry_date` | date | yes | — | Date the record was entered into the EDC. |
-| `site_name` | character | no | — | Site label as exported by the site, denormalised. Subject to encoding damage. |
+| `entry_date` | date | yes | - | Date the record was entered into the EDC. |
+| `site_name` | character | no | - | Site label as exported by the site, denormalised. Subject to encoding damage. |
 
 ## Derived variables
 

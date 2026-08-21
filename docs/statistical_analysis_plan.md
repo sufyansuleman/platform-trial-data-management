@@ -19,8 +19,8 @@ That is its strength and its hazard: every additional look is an additional oppo
 find a pattern that is not there, and every decision made after seeing the data is a
 decision that could have been made differently had the data come out otherwise.
 
-Pre-specification is the only defence. Everything in this document — the outcomes, the
-models, the priors, the thresholds, the schedule — is fixed before any of it is applied.
+Pre-specification is the only defence. Everything in this document - the outcomes, the
+models, the priors, the thresholds, the schedule - is fixed before any of it is applied.
 Where a number is stated here it is also stated in `config/`, and the analysis code reads
 it from there rather than carrying its own copy.
 
@@ -58,12 +58,12 @@ complete.
 Precisely, a participant-domain record is in the ITT population when:
 
 - it has a randomisation date and time in that domain; **and**
-- that randomisation date is on or before `as_of_date − 30 days`.
+- that randomisation date is on or before `as_of_date - 30 days`.
 
 Records are included **whether or not the endpoint is complete**. A participant with
 unknown days enters with an incomplete endpoint and an explicit count of them. Excluding
 them would select the population on data quality, which correlates with site, which
-correlates with case mix and local practice — see [DEC-017](decisions.md).
+correlates with case mix and local practice - see [DEC-017](decisions.md).
 
 Records with **no randomisation date** cannot be anchored to a window and are not
 evaluable. They are counted and reported, never silently dropped. In the current synthetic
@@ -87,8 +87,8 @@ The number of days within the 30 days after randomisation into that domain on wh
 participant was alive **and** free of all of: invasive mechanical ventilation, vasopressor
 or inotropic support, and renal replacement therapy. Death within 30 days scores 0.
 
-Derived by `R/derive/days_alive_without_life_support.R`. Its conventions — the window
-boundary, what a partial day means, and what a missing day means — are pinned in
+Derived by `R/derive/days_alive_without_life_support.R`. Its conventions - the window
+boundary, what a partial day means, and what a missing day means - are pinned in
 [DEC-012](decisions.md), [DEC-013](decisions.md) and [DEC-006](decisions.md), and are
 covered by 40 tests written before the function.
 
@@ -130,7 +130,7 @@ data. The result would partly be a restatement of what the person who wrote the 
 already thought.
 
 The treatment-effect prior is therefore centred on **no difference** and kept wide. It is
-symmetric — no more willing to find benefit than harm — because an asymmetric prior on a
+symmetric - no more willing to find benefit than harm - because an asymmetric prior on a
 treatment effect makes the trial more likely to reach one conclusion than the other before
 a single participant is enrolled.
 
@@ -147,7 +147,7 @@ derived.
 The residual standard deviation is estimated from the pooled data in the cut and held
 fixed, rather than given its own prior and integrated over. This is a deliberate
 simplification: it makes the posterior conjugate and therefore closed-form and exactly
-reproducible. At the sample sizes involved — hundreds per arm — the uncertainty in the
+reproducible. At the sample sizes involved - hundreds per arm - the uncertainty in the
 standard deviation contributes very little to the uncertainty in the difference of means,
 which is what the decision rules read. The prior sensitivity analysis in section 8 is
 where the cost of this assumption becomes visible if it matters.
@@ -155,7 +155,7 @@ where the cost of this assumption becomes visible if it matters.
 ### Mortality
 
 Beta(2, 3) per arm: mean 0.4, worth about five prior observations. The posterior is
-Beta(2 + deaths, 3 + survivors) — exact, deterministic, and explainable in a single line
+Beta(2 + deaths, 3 + survivors) - exact, deterministic, and explainable in a single line
 to a committee.
 
 ## 6. Models
@@ -179,7 +179,7 @@ requires an adjusted continuous model with site-level random effects, this decis
 revisited and `rstanarm` is the fallback. That trigger is recorded so the choice is
 revisited deliberately rather than defended out of habit.
 
-Quantities without a closed form — chiefly P(|difference| < margin) — are computed from
+Quantities without a closed form - chiefly P(|difference| < margin) - are computed from
 100,000 draws from the closed-form posteriors, with the seed fixed in `config/priors.yml`
 so the number is identical on every run.
 
@@ -202,7 +202,7 @@ across several domains, and each is an opportunity to stop early on a chance exc
 threshold is calibrated by simulation under a null scenario (section 9) rather than
 asserted, and the calibration is reported in the operating characteristics document.
 
-**0.01 for inferiority**, stated separately rather than as `1 − superiority`, because the
+**0.01 for inferiority**, stated separately rather than as `1 - superiority`, because the
 two are not mirror images. The cost of continuing to randomise patients into a harmful arm
 is not the same as the cost of continuing a beneficial one, so the thresholds must be able
 to move independently even if they currently happen to be symmetric.
@@ -213,7 +213,7 @@ patient would notice. Declaring practical equivalence at that margin says the ar
 close enough that continuing to randomise is not a good use of patients.
 
 That margin is also why the analysis reports ITT and complete-case results side by side.
-The two differ by 1.6 days in the current data — **larger than the margin itself** — which
+The two differ by 1.6 days in the current data - **larger than the margin itself** - which
 means the handling of missing days could by itself determine whether a domain is declared
 equivalent. That is stated here, in advance, rather than discovered afterwards.
 
@@ -227,7 +227,7 @@ maximum of **10,000**.
 
 ### Response-adaptive randomisation
 
-Begins **after the first adaptive analysis** — allocation stays fixed until there is
+Begins **after the first adaptive analysis** - allocation stays fixed until there is
 evidence to adapt to. Allocation is then set proportional to each arm's posterior
 probability of being best, subject to a floor of **40%** per arm, with the remainder
 renormalised.
@@ -270,8 +270,8 @@ sceptical one is the finding, and it must be reported as one.
 
 Before any data is analysed, datasets are simulated from the priors alone and compared
 against the range of clinically plausible trial results. A prior that implies trials which
-could not happen — mean days alive without life support outside 0 to 30, or mortality near
-0% or 100% — is wrong, however weak it looks in a table. The check and its plot are
+could not happen - mean days alive without life support outside 0 to 30, or mortality near
+0% or 100% - is wrong, however weak it looks in a table. The check and its plot are
 included in the analysis report.
 
 ### Complete case
@@ -285,14 +285,14 @@ assumption.
 
 | Situation | Treatment |
 |---|---|
-| Some days in the window unobserved | The participant is **in** the ITT analysis with the observed days counted and the unobserved days counted as not free of support. `unknown_days` is reported. This understates the endpoint rather than inflating it — see [DEC-006](decisions.md). |
+| Some days in the window unobserved | The participant is **in** the ITT analysis with the observed days counted and the unobserved days counted as not free of support. `unknown_days` is reported. This understates the endpoint rather than inflating it - see [DEC-006](decisions.md). |
 | No randomisation date | **Not evaluable.** Excluded from the analysis and reported as a count in every analysis record. |
 | Vital status unknown at 30 days | Treated as alive for the primary outcome, and reported separately. The count must be small; if it is not, the analysis is unreliable and the report says so. |
 | Participant still within their window | Not in the cut at all. Not a missing-data problem. |
 
 No imputation is performed for the primary analysis. Imputing unobserved days would
 manufacture the very observations the endpoint counts, and would do so most often at the
-sites whose data is worst — precisely where the manufactured values would be least
+sites whose data is worst - precisely where the manufactured values would be least
 trustworthy.
 
 ## 11. What is reported

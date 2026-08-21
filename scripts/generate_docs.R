@@ -48,7 +48,7 @@ field_row <- function(spec) {
           spec$name,
           spec$type,
           if (isTRUE(spec$required)) "yes" else "no",
-          if (length(constraint)) paste(constraint, collapse = "; ") else "—",
+          if (length(constraint)) paste(constraint, collapse = "; ") else "-",
           trimws(gsub("\\s+", " ", spec$description %||% "")))
 }
 
@@ -61,7 +61,7 @@ dictionary <- c(
   "constraints the schema enforces. These are the **hard bounds**: a value",
   "outside them is certainly wrong. The tighter *plausibility* bounds that",
   "generate queries live in [validation_plan.md](validation_plan.md) and are",
-  "deliberately narrower — see rule RNG-001 for why.",
+  "deliberately narrower - see rule RNG-001 for why.",
   "",
   "## Conventions",
   "",
@@ -200,7 +200,7 @@ plan <- c(
   "",
   "Three injected defect types have no rule in this rule set: entry-delay",
   "drift, terminal-digit preference and adverse-event under-reporting. None of",
-  "them can be detected in a single record — every individual record is valid —",
+  "them can be detected in a single record - every individual record is valid - ",
   "and they are addressed by statistical monitoring instead. They are reported",
   "as not applicable rather than as failures, because scoring a rule set",
   "against defects it was never written to catch would misrepresent it.",
@@ -211,11 +211,11 @@ plan <- c(
 
 by_file <- split(rules, vapply(rules, function(r) r$source_file, character(1)))
 file_titles <- c(
-  structural.yml = "Structural — types, keys, required fields, referential integrity",
-  range.yml = "Range — physiological plausibility",
-  logic.yml = "Logic — cross-field and cross-form consistency",
-  temporal.yml = "Temporal — date sequencing",
-  cross_domain.yml = "Cross-domain — participants entered in more than one domain"
+  structural.yml = "Structural - types, keys, required fields, referential integrity",
+  range.yml = "Range - physiological plausibility",
+  logic.yml = "Logic - cross-field and cross-form consistency",
+  temporal.yml = "Temporal - date sequencing",
+  cross_domain.yml = "Cross-domain - participants entered in more than one domain"
 )
 
 for (source_file in names(file_titles)) {
@@ -234,7 +234,7 @@ for (source_file in names(file_titles)) {
 
     plan <- c(
       plan,
-      sprintf("#### %s — %s", rule$id, gsub("_", " ", rule$name)),
+      sprintf("#### %s - %s", rule$id, gsub("_", " ", rule$name)),
       "",
       sprintf("| | |"),
       sprintf("|---|---|"),
