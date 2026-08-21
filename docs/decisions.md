@@ -466,3 +466,81 @@ guarantee impossible to satisfy by construction.
 changed, not only that it succeeds when nothing is. A verification that cannot fail
 verifies nothing, and a hash comparison that quietly compares a value against itself would
 pass forever while proving nothing at all.
+
+---
+
+## 2026-08-21 — DEC-019: normal approximation for the primary outcome
+
+**Decision.** Days alive without life support is analysed with a normal-normal conjugate
+model on the arm means, with the residual standard deviation estimated from the pooled
+data and held fixed.
+
+**Reasoning.** The outcome is plainly not normal. It is bounded at 0 and 30, and it is
+heavily zero-inflated because every death within the window scores 0 — roughly a third of
+participants in this population. A histogram of it looks nothing like a bell.
+
+That does not matter for what the decision rules actually read, which is a **difference in
+means** between two arms of several hundred participants each. The sampling distribution of
+that difference is well behaved whatever the shape of the underlying outcome, and the
+posterior for it is closed-form, deterministic and reproducible in a way no sampler is.
+See DEC-009.
+
+Holding the standard deviation fixed rather than integrating over its own prior is the
+second simplification. At these sample sizes the uncertainty it contributes to the
+difference of means is small relative to the uncertainty in the means themselves.
+
+**What would make this wrong.** A domain with very few participants, where the normal
+approximation to the difference has not yet taken hold; or a treatment that changes the
+*shape* of the distribution rather than its centre — for example one that converts deaths
+into long survivals with prolonged support, moving mass from 0 to the middle without moving
+the mean much. The second is a real possibility in critical care, and it is the reason
+mortality is analysed separately as its own outcome rather than being trusted to show up in
+the primary.
+
+**Rejected alternatives.** A zero-inflated or beta-binomial model on the scaled outcome
+would fit the distribution better and would need MCMC, forfeiting exact reproducibility for
+a gain the decision rules cannot use. A rank-based comparison avoids distributional
+assumptions but does not produce a mean difference, and the equivalence margin is expressed
+in days, which a rank statistic cannot speak to.
+
+---
+
+## 2026-08-21 — DEC-020: only the primary outcome may stop a domain
+
+**Decision.** Secondary outcomes — 30-day and 90-day mortality, days alive out of hospital
+— are reported with full posterior quantities but never trigger a stopping decision. Only
+days alive without life support does.
+
+**Reasoning.** An adaptive trial's characteristic failure is stopping early on a chance
+excursion, and every additional quantity permitted to stop the trial multiplies the
+opportunities for that to happen. Three outcomes each tested at P > 0.99 do not give a 1%
+error rate; they give something close to three times that, and the inflation is invisible
+in any single analysis because each one looks stringent on its own.
+
+Reporting the secondaries costs nothing and informs interpretation. Letting them stop the
+trial costs error control.
+
+---
+
+## 2026-08-21 — DEC-021: the SAP is committed before the analysis code
+
+**Decision.** `docs/statistical_analysis_plan.md`, `config/priors.yml` and
+`config/decision_rules.yml` are committed in a change that contains **no analysis code at
+all**. The engine that reads them arrives in a later commit.
+
+**Reasoning.** Pre-specification is only meaningful if it can be shown to have happened
+before the analysis, and in a repository the only evidence that carries any weight is the
+commit history. A plan written alongside the code it governs is indistinguishable from a
+plan written to match results that were already visible.
+
+Numbers live in `config/` rather than inside functions for the same reason: a committee
+member can read the thresholds a decision was made under without reading R, and changing
+one is a visible, dated, reviewable act rather than an edit buried in a function body.
+Every analysis record stamps the versions of all three files it used, so any result can be
+traced to the rules that were in force when it was produced.
+
+**A consequence accepted.** Writing the plan first means committing to decisions before
+knowing whether they are convenient to implement. The normal approximation in DEC-019 and
+the fixed standard deviation were both chosen partly for tractability, and both are stated
+in the plan as assumptions with the conditions that would invalidate them, rather than
+being discovered and quietly accommodated later.
