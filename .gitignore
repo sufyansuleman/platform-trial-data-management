@@ -18,7 +18,9 @@ data/cuts/*
 .quarto/
 _site/
 build/
-reports/*.html
+# rendered reports are build output, never committed
+*.html
+reports/site_monitoring_*.qmd
 .DS_Store
 
 # local bootstrap scaffolding, not part of the specified repo structure
