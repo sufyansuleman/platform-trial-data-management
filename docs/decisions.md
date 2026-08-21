@@ -416,3 +416,53 @@ The same normalisation is what makes the entry-delay drift signal legible. SE-02
 delay rises from 9 days to 26 over 13 months, a slope of 1.69 days per month against 0.18
 for the next worst site. On a calendar axis that trend is confounded with the site being
 younger than the Danish cohort; against its own initiation it is unmistakable.
+
+---
+
+## 2026-08-21 — DEC-017: cuts include incomplete records, and say so
+
+**Decision.** A participant-domain record enters a data cut when its 30-day window has
+closed on or before the as-of date and it has a randomisation datetime to anchor that
+window. Whether its data is complete is **not** a criterion. Records with unknown days
+enter the cut with an incomplete endpoint and an explicit count, and the manifest reports
+how many there are.
+
+**Reasoning.** Excluding participants whose daily records are missing looks like quality
+control and is actually selection bias. Data completeness is not randomly distributed: it
+correlates with site, site correlates with country, country correlates with case mix and
+with local practice. Dropping incomplete records therefore silently reweights the analysis
+population toward the sites that enter data well, and those sites differ from the others
+in ways that have nothing to do with the treatments being compared.
+
+Including them with the incompleteness visible pushes the decision to where it belongs.
+The statistician can run a complete-case sensitivity analysis and see how much it moves
+the result, which is a finding. Silent exclusion produces the same numbers with no way to
+notice.
+
+**Rejected alternative.** Exclude records with any unknown day, on the grounds that the
+endpoint is not measured for them. It would produce a tidier dataset and a smaller,
+biased one.
+
+---
+
+## 2026-08-21 — DEC-018: cut files are hashed from disk, after writing
+
+**Decision.** `make_cut()` writes every file, then computes SHA-256 by reading each file
+back from disk, then records those hashes in the manifest. The order is not
+interchangeable and the hashes are never computed from the in-memory objects.
+
+**Reasoning.** What a later reader verifies is the file. Hashing the in-memory data frame
+would produce a value that certifies something nobody can check: it would not detect a
+truncated write, a serialisation difference between arrow versions, or a file altered
+after the fact. Reading back what was actually written closes that gap, at the cost of one
+extra read per file.
+
+The reproduction test deliberately holds the creation timestamp constant, taking it from
+the original manifest. Reproduction asks whether the same inputs give the same data, not
+whether the clock has moved, and a timestamp inside the compared artefacts would make the
+guarantee impossible to satisfy by construction.
+
+**On falsifiability.** The test suite checks that reproduction *fails* when an input is
+changed, not only that it succeeds when nothing is. A verification that cannot fail
+verifies nothing, and a hash comparison that quietly compares a value against itself would
+pass forever while proving nothing at all.

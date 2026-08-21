@@ -17,7 +17,7 @@ library(targets)
 tar_source("R")
 
 tar_option_set(
-  packages = c("yaml", "arrow", "dplyr", "tidyr", "digest"),
+  packages = c("yaml", "arrow", "dplyr", "tidyr", "digest", "jsonlite"),
   format = "rds"
 )
 
@@ -101,6 +101,25 @@ list(
 
   tar_target(dawols_summary, summarise_dawols(dawols)),
   tar_target(dawols_by_domain, summarise_dawols(dawols, by = "domain")),
+
+  # -- Data cut -------------------------------------------------------------
+  # A frozen snapshot of everyone who has completed 30-day follow-up as of the
+  # cut date, while enrolment continues past them. The Bayesian analysis layer
+  # runs on this and never on live data: an analysis run twice on a database
+  # that sites are still editing can give two answers, and neither is wrong.
+  #
+  # Built to the contract in docs/data_cut_sop.md.
+  tar_target(cut_as_of_date, as.Date("2025-09-30")),
+
+  tar_target(demonstration_cut, make_cut(
+    as_of_date = cut_as_of_date,
+    forms = conformed_forms,
+    findings = findings,
+    endpoint = dawols,
+    cfg = trial_config
+  )),
+
+  tar_target(cut_verification, verify_cut(demonstration_cut$cut_id)),
 
   # -- Monitoring metrics ---------------------------------------------------
   # Computed once here rather than inside each report. Every site report needs
