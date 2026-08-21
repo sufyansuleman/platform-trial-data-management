@@ -8,8 +8,211 @@ multi-country, multi-domain adaptive platform trial.
 > from, or endorsed by any real clinical trial, hospital, or research group. No real
 > patient data is used or expected.
 
-**Status:** in development — Milestone 1.
+**Status:** Milestone 1 complete.
 Full specification: [docs/BUILD_SPEC.md](docs/BUILD_SPEC.md)
 
-Built in R with `targets`, `testthat` and Quarto.
-Data manipulation uses `dplyr` throughout (see [docs/decisions.md](docs/decisions.md), DEC-001).
+Built in R with [`targets`](https://books.ropensci.org/targets/), `testthat` and Quarto.
+Data manipulation uses `dplyr` throughout ([DEC-001](docs/decisions.md)).
+
+---
+
+## What this is
+
+A pipeline that takes messy, multi-country clinical trial data exports and turns them
+into a validated analysis dataset — then tells a coordinator, in plain language, what to
+fix.
+
+It simulates **2,549 participants** across **25 sites in 5 countries**, running **3
+clinical domains** concurrently over a shared participant population, with **24 months**
+of staggered enrolment. Every dataset is generated from a seed: nothing here is real, and
+nothing is committed that the code cannot rebuild.
+
+```text
+config/trial.yml ─┐
+                  ├─→ simulate ─→ inject defects ─→ EDC export (125 CSVs, local formats)
+config/schema/ ───┘                    │                        │
+                                       │                        ▼
+                                  ground truth              ingest  ── conformance log
+                                       │                        │
+                                       │                        ▼
+config/rules/ ────────────────────→ validate ──────────→  findings table
+                                       │                        │
+                                       ▼                        ▼
+                                  recall score            derived endpoint
+                                                                │
+                                                                ▼
+                                                  25 site reports + central report
+```
+
+## Run it
+
+```bash
+Rscript -e 'renv::restore()'
+Rscript -e 'targets::tar_make()'
+Rscript -e 'testthat::test_dir("tests/testthat")'
+```
+
+Then, optionally, `Rscript scripts/render_reports.R` to build the reports into `_site/`.
+
+The pipeline takes about 15 seconds; the test suite about 30; a full render of all 26
+reports about 3.5 minutes.
+
+## What makes it worth reading
+
+### The rules are data, not code
+
+The validation engine is generic. Nothing in `R/validate/` knows what a vasopressor is.
+Every one of the **23 rules** lives in `config/rules/*.yml` with its own severity,
+description and rationale:
+
+```yaml
+- id: TMP-004
+  name: ae_onset_before_randomisation
+  scope: adverse_events
+  severity: critical
+  description: >
+    Adverse event onset must not precede the participant's first
+    randomisation datetime in any domain.
+  rationale: >
+    An AE preceding randomisation is not attributable to the trial
+    intervention and indicates a data entry or linkage error.
+  expression: onset_date >= first_randomisation_date
+  action: query
+```
+
+A trial manager can read every check the pipeline performs, and propose a new one,
+without reading any R. Cross-form facts are precomputed as named context columns so the
+expressions stay readable as prose rather than becoming joins.
+
+Full SOP: [docs/validation_plan.md](docs/validation_plan.md).
+
+### The rules are scored, not trusted
+
+The pipeline injects a catalogue of known defects and records ground truth for every one,
+so the engine's performance is **measured rather than asserted** — including what it
+misses.
+
+| Defect | Rule | Injected | Detected | Recall |
+|---|---|---:|---:|---:|
+| D01 missing required field | STR-001 | 2,635 | 2,625 | 99.6% |
+| D02 gap in daily records | LOG-001 | 46 | 45 | 97.8% |
+| D03 implausible weight | RNG-001 | 16 | 16 | 100% |
+| D03 implausible heart rate | RNG-002 | 103 | 103 | 100% |
+| D03 implausible temperature | RNG-003 | 88 | 87 | 98.9% |
+| D04 discharge before admission | TMP-001 | 25 | 24 | 96.0% |
+| D05 AE before randomisation | TMP-004 | 23 | 23 | 100% |
+| D06 duplicate participant ID | STR-003 | 6 | 5 | 83.3% |
+| D07 double randomisation | STR-004 | 8 | 8 | 100% |
+| D08 alive after death date | LOG-002 | 14 | 14 | 100% |
+| **D11 pounds submitted as kg** | RNG-001 | 31 | 23 | **74.2%** |
+| D09 entry-delay drift | *none* | 739 | 0 | n/a |
+| D10 terminal-digit preference | *none* | 453 | 0 | n/a |
+| D12 AE under-reporting | *none* | 17 | 0 | n/a |
+
+**Overall: 99.3%** of defect records that a rule targets.
+
+Three points of honesty in that table:
+
+- **D11 at 74.2% is a genuine limitation.** A pounds reading submitted as kilograms is
+  only implausible if the patient was heavy enough — 60 kg × 2.2 = 132 kg sits inside any
+  defensible plausibility bound. The rest needs a site-level distribution check, not a
+  row rule.
+- **D09, D10 and D12 are `n/a`, not 0%.** No rule in this milestone targets them. Scoring
+  a rule set against defects it was never written to catch would misrepresent it;
+  omitting them would misrepresent the defect catalogue. They are statistical signals,
+  and the central report already detects the first of them.
+- **LOG-001 fires 138 times against 46 injected gaps.** Most of the excess is real: no
+  form carries an ICU discharge date, so a gap from readmission is indistinguishable from
+  missing entry. The fix is a schema change, not a rule change.
+
+### The endpoint has more tests than anything else
+
+`days_alive_without_life_support` is the number an adaptive stopping decision reads. An
+error in it does not produce a wrong report — it produces a wrong decision about whether
+to keep randomising patients. It therefore has **40 tests**, written before the function,
+covering death at days 0, 1, 29, 30 and 31; partial days; interior gaps; ICU transfers;
+discharge and readmission; support beginning exactly at the 30-day boundary; conflicting
+duplicate records; and multi-domain windows anchored to different randomisation dates.
+
+The consequential decision is what a **missing** day means. A day with no record is
+`unknown`, never "free of support" — unless a documented discharge explains it. Crediting
+unexplained gaps would inflate the endpoint in proportion to how badly a site enters its
+data, turning a data-quality problem into an apparent treatment effect
+([DEC-006](docs/decisions.md)).
+
+The function returns `unknown_days` and `complete` alongside the count, because:
+
+| | All records | Complete only |
+|---|---:|---:|
+| Mean days alive without life support | 16.18 | 14.55 |
+
+That 1.6-day gap is **wider than the 1-day margin** the analysis plan uses to declare two
+arms practically equivalent. A single confident-looking integer would have hidden it.
+
+### The multi-country mess is real
+
+Sites export in their own local conventions, and ingest has to undo all of it and log
+every transformation:
+
+| Transformation | Sites | Values |
+|---|---:|---:|
+| Date format normalised to ISO | 20 | 46,962 |
+| Blank read as missing | 25 | 7,109 |
+| Decimal comma normalised | 5 | 3,653 |
+| Latin-1 transcoded to UTF-8 | 1 | 1,339 |
+| Units converted (lb → kg, mg/dL → µmol/L) | 2 | 270 |
+
+Encoding is detected from the file bytes, not trusted from configuration. Nothing is
+silently coerced: a value that cannot be interpreted under an explicit rule **stops the
+pipeline**, naming the site, the field and the offending values.
+
+### Drift is caught by trends, not rules
+
+No validation rule can catch a site getting slower. Every record at a drifting site is
+perfectly valid — it was simply entered late, which is not a rule violation. Fitting a
+slope to each site's median entry delay, measured against **its own initiation date**
+rather than calendar time, identifies SE-02 at **1.69 days per month** against 0.18 for
+the next worst site. That is the injected D09 defect, found by the only method that can
+find it.
+
+## Reports
+
+`scripts/render_reports.R` produces one report per site plus a central report for the
+coordinating centre. **The actionable list comes first and the charts come second** — a
+monitoring report is a work instruction, not a dashboard.
+
+Each site report opens with "what to do this week": ranked by consequence, not by count,
+because one participant randomised twice matters more than two hundred blank temperature
+fields.
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `config/trial.yml` | Sites, countries, domains, timeline, clinical model, defect catalogue |
+| `config/schema/` | One YAML per form: columns, types, bounds, required flags |
+| `config/rules/` | The validation rules, by category |
+| `R/simulate/` | Synthetic data generation and defect injection |
+| `R/ingest/` | Reading and conforming the EDC exports |
+| `R/validate/` | The rule engine, rule context, and recall scoring |
+| `R/derive/` | The primary endpoint |
+| `R/monitor/` | Monitoring metrics and drift detection |
+| `reports/` | Parameterised Quarto reports |
+| `tests/testthat/` | 363 tests |
+| `docs/decisions.md` | Dated log of every non-obvious choice and its rationale |
+
+## Documentation
+
+- **[docs/decisions.md](docs/decisions.md)** — a dated log of every design judgement, with
+  the reasoning and the alternative rejected. The most useful file in the repository for
+  understanding how the thing was built, including the bugs found and what they taught.
+- [docs/data_dictionary.md](docs/data_dictionary.md) — every field, generated from the
+  schemas so it cannot drift
+- [docs/validation_plan.md](docs/validation_plan.md) — SOP-style: every rule, its
+  rationale, its severity, and what happens when it fires
+- [docs/data_cut_sop.md](docs/data_cut_sop.md) — how a frozen cut is produced, verified
+  and reproduced
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).
