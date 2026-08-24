@@ -216,14 +216,6 @@ test_that("an even probability gives an even allocation", {
 
 # --- The engine end to end --------------------------------------------------
 
-analysis_cut <- function() {
-  inputs <- cut_inputs()
-  dir <- temp_cut_dir()
-  manifest <- make_cut(FIXTURE_DATE + 100, inputs$forms, inputs$findings,
-                       inputs$endpoint, dir = dir)
-  list(dir = dir, cut_id = manifest$cut_id)
-}
-
 test_that("the engine refuses to analyse a cut that fails verification", {
   # The seam the whole design exists to protect. An analysis on a silently
   # modified cut carries the authority of a frozen dataset without the

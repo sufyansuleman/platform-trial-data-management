@@ -1,7 +1,7 @@
 # Statistical analysis plan
 
 **Trial.** Synthetic Adaptive Platform Trial in Critical Illness
-**SAP version.** 1.0
+**SAP version.** 1.1
 **Effective date.** 21 August 2026
 **Status.** Pre-specified. Committed before any analysis code was written; the git history
 of this repository shows that ordering, and the ordering is the point.
@@ -266,13 +266,27 @@ like.** A table of three near-identical posteriors is reassuring and uninformati
 domain that stops for superiority under the pre-specified prior and continues under the
 sceptical one is the finding, and it must be reported as one.
 
-### Prior predictive checks
+### Prior predictive checks: a gate, not a diagnostic
 
-Before any data is analysed, datasets are simulated from the priors alone and compared
-against the range of clinically plausible trial results. A prior that implies trials which
-could not happen - mean days alive without life support outside 0 to 30, or mortality near
-0% or 100% - is wrong, however weak it looks in a table. The check and its plot are
-included in the analysis report.
+Datasets are simulated from the priors alone and compared against the range of clinically
+plausible trial results. A prior that implies trials which could not happen - mean days
+alive without life support outside 0 to 30, or mortality near 0% or 100% - is wrong,
+however weak it looks in a table.
+
+**This check is a condition of the plan taking effect, not a report section.** It is run at
+finalisation, its verdict is recorded in `config/prior_predictive_record.yml` bound to a
+hash of the priors file, and `run_adaptive_analysis()` **refuses to start** unless that
+record exists, matches the priors in force, and records a pass. The acceptance criteria are:
+
+| Criterion | Limit |
+|---|---|
+| Prior mass outside the 0 to 30 day outcome range | 10% |
+| Prior-implied treatment effects exceeding 10 days | 25% |
+
+Placement matters more than the criteria. Run afterwards, this check is a diagnostic, and a
+diagnostic depends on somebody noticing it and acting. Run as a gate, it cannot be skipped.
+Version 1.0 of this plan carried a prior that failed both criteria and reached a live
+analysis regardless, precisely because the check sat in the wrong place. See DEC-023a.
 
 ### Complete case
 
@@ -318,3 +332,4 @@ For each domain and arm:
 | Version | Date | Change |
 |---|---|---|
 | 1.0 | 2026-08-21 | Initial version. Pre-specified before any analysis code was written. |
+| 1.1 | 2026-08-21 | Arm mean prior tightened from Normal(15, 10^2) to Normal(15, 5^2), implying a treatment effect prior of about Normal(0, 7^2). Version 1.0 failed the prior predictive check in section 9: 14.4% of prior mass fell outside the 0 to 30 day range the outcome can take, and 48.1% of implied treatment effects exceeded 10 days. The amendment uses **no data** - a prior predictive check evaluates the prior against what is physically possible, and every input existed before enrolment opened - so it is not a data-dependent change. The decision is unaffected: ANTICOAG gives P = 0.9988 under both versions and every domain reaches the same decision. The version 1.0 analysis record is retained unchanged. The prior predictive check is made a gate on the plan taking effect, so this class of defect cannot reach a live analysis again. |

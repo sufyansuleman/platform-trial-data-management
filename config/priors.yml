@@ -19,8 +19,29 @@
 # Every analysis record stamps the version of this file it used.
 # ---------------------------------------------------------------------------
 
-version: "1.0"
+version: "1.1"
 effective_date: 2026-08-21
+
+# CHANGE FROM 1.0. The arm mean prior standard deviation is reduced from 10 to
+# 5 days. Version 1.0 failed its own prior predictive check: it placed 14.4% of
+# prior mass outside the 0 to 30 day range the outcome can physically take, and
+# implied a treatment effect larger than 10 days 48.1% of the time, which no
+# critical care intervention has produced.
+#
+# The amendment is legitimate at this point in the trial for one specific
+# reason: a prior predictive check uses NO DATA. It evaluates the prior against
+# what is physically and clinically possible, and every input to it was
+# available before a single participant was enrolled. Tightening a prior in
+# response to it is therefore not a data-dependent choice, which is the thing
+# pre-specification exists to prevent.
+#
+# The decision is unaffected either way. The sensitivity analysis already
+# established that all three domains reach the same decision under prior
+# standard deviations of 2, 10 and 100 days, a far wider range than this
+# amendment moves within.
+#
+# The version 1.0 analysis record is retained unchanged as a historical
+# artefact. See DEC-023a.
 
 # --- Primary outcome: days alive without life support at 30 days ------------
 # Modelled as normal with a normal-normal conjugate update. The outcome is
@@ -37,7 +58,7 @@ primary_outcome:
   # few dozen participants.
   arm_mean_prior:
     mean: 15.0
-    sd: 10.0
+    sd: 5.0
 
   # Prior on the residual standard deviation, held fixed at the pooled
   # estimate rather than given its own prior. See the SAP for why.
@@ -52,7 +73,7 @@ primary_outcome:
   # width can be read without deriving it.
   implied_treatment_effect_prior:
     mean: 0.0
-    sd: 14.14   # sqrt(10^2 + 10^2)
+    sd: 7.07    # sqrt(5^2 + 5^2)
 
 # --- Secondary outcome: mortality at 30 and 90 days -------------------------
 # Beta-binomial conjugate. The posterior is Beta(a + deaths, b + survivors),
@@ -86,7 +107,7 @@ sensitivity_priors:
     description: >
       The prior above. Centred on no difference, wide enough that the data
       dominates quickly.
-    arm_mean_sd: 10.0
+    arm_mean_sd: 5.0
     mortality_alpha: 2
     mortality_beta: 3
 

@@ -637,3 +637,98 @@ recommendation, not applied.
 alongside it. Had it been run when the SAP was written, the prior would have been tightened
 then, legitimately and before any data existed. The ordering is now recorded in the plan
 for the next version.
+
+---
+
+## 2026-08-21 - DEC-022a: amendment to DEC-022, the threshold is nominal and uncalibrated
+
+**Recorded because DEC-022 blurred two claims that must stay separate.**
+
+**Calibration has not run.** `adaptr::calibrate_trial()` has not been executed, `adaptr` is
+not yet a dependency, and section 2.2 of the specification is unbuilt. No target error rate
+was set and no calibrated threshold was returned. The **P > 0.99 superiority threshold
+shipped in `config/decision_rules.yml` is a nominal default**, taken from the specification
+and never checked against a null scenario. Calibration is deferred to section 2.2.
+
+**What the null rate actually is, measured.** Simulating the null scenario through this
+repository's own posterior code, 4,000 replicates at 310 per arm with sigma 12.4:
+
+| Quantity | Rate |
+|---|---|
+| P(stop_superiority given no true difference) | 0.0085 |
+| P(stop_inferiority given no true difference) | 0.0090 |
+| Any directional stop, per domain per look | 0.0175 |
+| At least one stop across 3 domains at 1 look | 0.0516 |
+
+**So the ANTICOAG false positive is bad luck alone.** One directional stop across three
+domains at a single look is a 5.2% event under the null. That is unremarkable. It is not
+bad luck compounded by an inflated threshold, because only one analysis was performed and
+multiplicity across repeated looks never accumulated.
+
+**The uncalibrated threshold is nonetheless a real deficiency, for a different reason.**
+The pre-specified schedule performs the first analysis at 1,000 completed participants and
+then every 250 thereafter. Under that schedule a domain is examined many times, and a
+nominal per-look rate of 1.75% compounds across looks into a substantially larger
+probability of stopping a null domain at some point. Nothing in the current results
+demonstrates that inflation, because the demonstration ran a single look. But nothing
+rules it out either, and the repository must not claim a controlled error rate it has not
+measured.
+
+**Therefore:** the design's operating characteristics are **unknown**, not established.
+Until `calibrate_trial()` runs under a null scenario and the threshold is tuned to a stated
+error rate, no report may describe the error rate as controlled. Section 2.2 is where that
+gets fixed, and this entry is the record that it is outstanding.
+
+---
+
+## 2026-08-21 - DEC-023a: amendment to DEC-023, the error was sequencing, not prior choice
+
+**DEC-023 recorded the wrong failure.** It treated an over-wide prior as the problem and
+keeping it as the remedy. Keeping it was right, but the prior was a symptom. **The failure
+was sequencing.**
+
+A prior predictive check is a condition of a statistical analysis plan becoming effective.
+It belongs at finalisation, as a gate. Run afterwards it degrades into a diagnostic, and a
+diagnostic is something a person is supposed to notice and act on. Here it was run
+alongside the analysis, which is why an obviously defective prior reached a live analysis
+at all: 48% of prior mass on treatment effects exceeding 10 days, on an outcome that cannot
+exceed 30. Anyone reading that number before the trial opened would have rejected the prior
+in seconds. Nothing subtle was missed. It was simply checked at the wrong time.
+
+**The control.** `run_adaptive_analysis()` now refuses to start unless the priors it is
+about to use have a **recorded, passing** prior predictive check bound to a hash of the
+priors file. It fails on three distinct conditions, reported separately because they call
+for different remedies:
+
+- no record exists, so the check was never run;
+- the record exists but its hash does not match the priors in force, so a prior was edited
+  after the check and the recorded verdict no longer describes it;
+- the record matches and records a failure.
+
+The middle condition is the one human review misses most easily and a hash catches
+immediately.
+
+**The amendment to the prior itself.** With the gate in place, SAP version 1.0 could not
+run: its prior fails both criteria. The plan is therefore amended to **version 1.1**, with
+the arm mean prior tightened from Normal(15, 10^2) to Normal(15, 5^2), implying a treatment
+effect prior of about Normal(0, 7^2).
+
+This amendment is legitimate at this point in the trial, and the reason is specific rather
+than convenient. **A prior predictive check uses no data.** It evaluates a prior against
+what is physically and clinically possible, and every input to it existed before a single
+participant was enrolled. Tightening a prior in response to it is not a data-dependent
+choice, and data dependence is the thing pre-specification exists to prevent. The check
+could have been run, and this amendment made, before the trial opened.
+
+Two safeguards against the obvious objection that we amended after seeing a result:
+
+- The decision is unchanged. Under version 1.1 the ANTICOAG probability is 0.9988, the same
+  to four figures as under version 1.0, and every domain reaches the same decision. The
+  sensitivity analysis had already established invariance across prior standard deviations
+  of 2, 10 and 100, a range far wider than this amendment moves within.
+- The version 1.0 analysis record is retained unchanged. Both are reported.
+
+**The general principle.** A rule that depends on somebody remembering is not a control. The
+prior predictive check, the cut manifest verification, and the transfer guard still to be
+built in the data protection work are the same pattern: take an obligation a person is
+meant to honour and make it a state the code refuses to proceed without.

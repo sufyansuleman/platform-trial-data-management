@@ -125,6 +125,15 @@ Three points of honesty in that table:
   form carries an ICU discharge date, so a gap from readmission is indistinguishable from
   missing entry. The fix is a schema change, not a rule change.
 
+**An unplanned dividend.** Defect D06 issues the same participant identifier at two
+different sites, and was built purely to exercise the validation engine's key checks.
+Months of work later it surfaced a real bug somewhere it was never aimed: an unguarded
+join in the *analysis* layer, which would have given those duplicated participants double
+weight in the treatment comparison. Nothing in the analysis output would have looked
+wrong. Synthetic defects designed to test one component turn out to be a standing
+adversarial dataset for every component built afterwards, and that is worth more than the
+recall table they were built to produce.
+
 ### The endpoint has more tests than anything else
 
 `days_alive_without_life_support` is the number an adaptive stopping decision reads. An

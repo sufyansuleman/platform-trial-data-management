@@ -161,6 +161,7 @@ analyse_domain <- function(data, priors, rules, population = "itt") {
 #' @param cuts_dir Directory holding the cuts.
 #' @param output_dir Directory to write analysis records into.
 #' @param priors,rules Pre-specified configuration; loaded if not supplied.
+#' @param prior_record_path Recorded prior predictive check the gate reads.
 #' @param analysed_at Timestamp; overridable so a reproduction can compare
 #'   results without the clock differing.
 #' @return The analysis record, invisibly.
@@ -169,10 +170,18 @@ run_adaptive_analysis <- function(cut_id,
                                   output_dir = project_path("data", "analyses"),
                                   priors = load_priors(),
                                   rules = load_decision_rules(),
+                                  prior_record_path = project_path(
+                                    "config", "prior_predictive_record.yml"),
                                   analysed_at = Sys.time()) {
 
-  # 1. Refuse to run on a cut that does not verify. This is the seam the whole
-  #    design exists to protect, so it is the first thing that happens.
+  # 1. Refuse to run under priors that have no recorded, passing prior
+  #    predictive check. The check belongs at SAP finalisation, as a condition
+  #    of the plan taking effect. Enforcing it here turns a discipline somebody
+  #    is supposed to remember into a state the code will not proceed without.
+  assert_prior_predictive_passed(record_path = prior_record_path)
+
+  # 2. Refuse to run on a cut that does not verify. This is the seam the whole
+  #    design exists to protect.
   verification <- verify_cut(cut_id, cuts_dir)
   if (!verification$verified) {
     stop("Refusing to analyse cut '", cut_id, "': manifest verification failed.",
@@ -222,7 +231,7 @@ run_adaptive_analysis <- function(cut_id,
     ),
 
     specification = list(
-      sap_version = "1.0",
+      sap_version = "1.1",
       priors_version = priors$version,
       decision_rules_version = rules$version,
       priors_file_sha256 = file_sha256(project_path("config", "priors.yml")),

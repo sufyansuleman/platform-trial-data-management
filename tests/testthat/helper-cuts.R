@@ -67,3 +67,11 @@ temp_cut_dir <- function() {
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   path
 }
+
+analysis_cut <- function() {
+  inputs <- cut_inputs()
+  dir <- temp_cut_dir()
+  manifest <- make_cut(FIXTURE_DATE + 100, inputs$forms, inputs$findings,
+                       inputs$endpoint, dir = dir)
+  list(dir = dir, cut_id = manifest$cut_id)
+}
