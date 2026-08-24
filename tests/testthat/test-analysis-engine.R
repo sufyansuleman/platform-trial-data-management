@@ -242,7 +242,7 @@ test_that("the analysis record stamps the specification versions it used", {
   skip_if(inherits(record, "error"),
           "fixture has a single arm per domain; covered by the pipeline run")
 
-  expect_equal(record$specification$sap_version, "1.0")
+  expect_equal(record$specification$sap_version, SAP_VERSION)
   expect_equal(record$specification$priors_version, load_priors()$version)
   expect_equal(record$specification$decision_rules_version,
                load_decision_rules()$version)

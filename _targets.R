@@ -134,6 +134,33 @@ list(
   tar_target(decision_robustness_table, decision_robustness(prior_sensitivity_table)),
   tar_target(prior_predictive, prior_predictive_check(load_priors())),
 
+  # -- Allocation reconciliation --------------------------------------------
+  # Closes the loop between the analysis and the randomisation system. An
+  # allocation update that fails to take effect at a site raises no error and
+  # produces a perfectly ordinary looking ratio; only comparing realised
+  # against specified exposes it.
+  tar_target(specified_allocation_table, specified_allocation(trial_config)),
+
+  tar_target(allocation_reconciliation, reconcile_allocation(
+    conformed_forms$randomisation,
+    specified_allocation_table,
+    attr(specified_allocation_table, "effective_date"),
+    max(as.Date(conformed_forms$randomisation$randomisation_datetime), na.rm = TRUE)
+  )),
+
+  tar_target(allocation_deviation_findings,
+             allocation_findings(allocation_reconciliation, sites)),
+
+  # Allocation deviations join the same findings table as every other data
+  # quality problem, so they reach the reports through machinery that exists
+  # rather than through a special case.
+  tar_target(all_findings, rbind(findings, allocation_deviation_findings)),
+
+  tar_target(allocation_update, emit_allocation_update(
+    adaptive_analysis,
+    effective_date = as.Date(demonstration_cut$as_of_date) + 15
+  )),
+
   # -- Monitoring metrics ---------------------------------------------------
   # Computed once here rather than inside each report. Every site report needs
   # the all-site picture to compare against, so recomputing it per report meant

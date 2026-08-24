@@ -27,3 +27,4 @@ reports/site_monitoring_*.qmd
 setup_renv.R
 
 data/analyses/
+data/allocations/

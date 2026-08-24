@@ -468,6 +468,59 @@ inject_ae_under_reporting <- function(forms, cfg, spec) {
   list(forms = forms, defects = ground_truth)
 }
 
+#' D13: an allocation update that never took effect at one site
+#'
+#' From the effective date, every site randomises on the new probabilities
+#' issued by the interim analysis, except the failing site, whose system
+#' silently carried on with the previous ratio.
+#'
+#' The deliberate part is what the records look like afterwards. The
+#' `allocation_ratio` field carries the NEW ratio at every site including the
+#' failing one, because that field records the ratio that was specified to be
+#' in force, and the specification was issued to everybody. So the failing
+#' site's records are internally consistent, its realised split is an entirely
+#' ordinary 1:1, no validation rule has anything to fire on, and no report
+#' looks wrong.
+#'
+#' That is the whole point. The only thing that can detect this is comparing
+#' realised allocation against specified allocation, per site.
+inject_allocation_not_applied <- function(forms, cfg, spec) {
+  randomisation <- forms$randomisation
+  effective_date <- as.Date(spec$effective_date)
+  failing <- unlist(spec$failing_sites)
+
+  after_update <- !is.na(randomisation$randomisation_datetime) &
+    as.Date(randomisation$randomisation_datetime) >= effective_date
+
+  # The specified ratio is recorded everywhere, applied everywhere but here.
+  randomisation$allocation_ratio[after_update] <- spec$specified_ratio_label
+
+  applied <- after_update & !(randomisation$site_id %in% failing)
+  for (domain in names(spec$arm_probabilities)) {
+    probabilities <- unlist(spec$arm_probabilities[[domain]])
+    rows <- which(applied & randomisation$domain == domain)
+    if (!length(rows)) next
+    randomisation$arm[rows] <- sample(names(probabilities), length(rows),
+                                      replace = TRUE, prob = probabilities)
+  }
+
+  forms$randomisation <- randomisation
+
+  not_applied <- which(after_update & randomisation$site_id %in% failing)
+  ground_truth <- if (length(not_applied)) {
+    defect_rows(
+      spec, "randomisation", "arm",
+      participant_id = randomisation$participant_id[not_applied],
+      site_id        = randomisation$site_id[not_applied],
+      record_key     = randomisation$randomisation_id[not_applied],
+      original_value = spec$specified_ratio_label,
+      injected_value = "previous ratio retained"
+    )
+  } else NULL
+
+  list(forms = forms, defects = ground_truth)
+}
+
 # Dispatch table: defect name in config -> injector function.
 DEFECT_INJECTORS <- list(
   missing_required_field           = inject_missing_required,
@@ -481,7 +534,8 @@ DEFECT_INJECTORS <- list(
   inconsistent_vital_status        = inject_vital_status_conflict,
   late_entry_drift                 = inject_entry_drift,
   terminal_digit_preference        = inject_terminal_digits,
-  ae_under_reporting               = inject_ae_under_reporting
+  ae_under_reporting               = inject_ae_under_reporting,
+  allocation_update_not_applied    = inject_allocation_not_applied
 )
 
 #' Inject every configured defect and return the ground-truth catalogue

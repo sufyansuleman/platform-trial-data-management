@@ -355,3 +355,30 @@ defects:
     sites: [NL-03]
     retention_fraction: 0.35
     expected_rule_id: ~
+
+  # -- Allocation update that never took effect ------------------------------
+  - id: D13
+    name: allocation_update_not_applied
+    description: >
+      An interim analysis issues new allocation probabilities. Every site
+      applies them except one, whose randomisation system silently continued
+      on the previous ratio. The randomisation records at that site still
+      carry the NEW ratio in allocation_ratio, because the specification was
+      issued to every site: the field records what was meant to be in force,
+      not what the system actually did. Nothing errors, no rule fires, and the
+      realised split at that site is a perfectly ordinary 1:1. Only comparing
+      realised against specified exposes it.
+    effective_date: 2024-10-01
+    specified_ratio_label: "3:2"
+    arm_probabilities:
+      FLUID:
+        liberal: 0.6
+        restrictive: 0.4
+      ANTICOAG:
+        intermediate_dose: 0.6
+        standard_dose: 0.4
+      BUFFER:
+        buffered: 0.6
+        saline: 0.4
+    failing_sites: [DK-01]
+    expected_rule_id: ~

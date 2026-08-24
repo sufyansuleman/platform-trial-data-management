@@ -732,3 +732,56 @@ Two safeguards against the obvious objection that we amended after seeing a resu
 prior predictive check, the cut manifest verification, and the transfer guard still to be
 built in the data protection work are the same pattern: take an obligation a person is
 meant to honour and make it a state the code refuses to proceed without.
+
+---
+
+## 2026-08-24 - DEC-024: allocation reconciliation, and why the injected failure is silent
+
+**Decision.** Defect D13 simulates an interim analysis whose new allocation probabilities
+reached every site except one, where the randomisation system silently carried on with the
+previous ratio. The injection is built so that **nothing except reconciliation can detect
+it**.
+
+**What makes it silent, deliberately.** Three properties, each chosen:
+
+- The `allocation_ratio` field on the failing site's records carries the **new** ratio,
+  identical to every other site. That field records the ratio specified to be in force, and
+  the specification was issued to everybody. The records are internally consistent.
+- The realised split at the failing site is **1:1**, which is an entirely ordinary thing
+  for a randomised trial to show. Nothing about the number is suspicious in isolation.
+- No validation rule has anything to object to. The records are complete, schema
+  conformant, temporally consistent and correctly linked. A row-level rule cannot see the
+  problem because the problem is not in any row.
+
+Measured on the pipeline data: the failing site shows 45.9% to the favoured arm against
+59.7% at every other site, with the identical `3:2` in the ratio field at both.
+
+**What catches it.** Comparing realised allocation against specified allocation, per site,
+by exact binomial test. DK-01 is flagged at p = 8.6e-05; the next most extreme site sits at
+p = 0.066, comfortably inside the alpha of 0.01. One site of 25 flagged, and it is the
+injected one.
+
+**Why per site and not pooled across sites.** Pooled over the whole trial, one deviating
+site is diluted by the twenty-four that applied the update correctly, and the trial-level
+ratio looks approximately right. The signal exists only at the level the failure occurred
+at.
+
+**Why pooled across domains within a site.** This is a power decision and it cuts the other
+way. Per site per domain, the trial randomises only a few dozen participants after an
+update, and a 14 point deviation cannot be separated from noise at that size. Pooling a
+site's three domains gives roughly 190 randomisations and detects it comfortably. Pooling
+is exact only when every domain specifies the same probability for its favoured arm, so
+`reconcile_allocation()` checks that and refuses to pool otherwise rather than
+approximating quietly: a pooled count over unequal probabilities is Poisson-binomial, not
+binomial, and the test would be wrong in a way nothing would reveal.
+
+**A limitation stated rather than hidden.** A small site cannot be flagged on a modest
+deviation, and the test suite asserts this. Twelve participants cannot demonstrate a ten
+point misallocation. That is correct behaviour: a check that flagged them anyway would be
+making an accusation it could not support. The consequence is that this control is weaker
+at exactly the sites where a misconfiguration would take longest to notice, and detection
+there depends on accumulating more randomisations rather than on a better test.
+
+**Where it surfaces.** Deviations become `ALC-001` findings at `critical` severity, in the
+same findings table as everything else, so they travel to the reports through machinery
+that already exists rather than through a special case.

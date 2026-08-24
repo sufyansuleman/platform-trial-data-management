@@ -15,6 +15,13 @@
 # Governed by docs/statistical_analysis_plan.md.
 # ---------------------------------------------------------------------------
 
+#' Version of the statistical analysis plan this engine implements.
+#'
+#' Declared once and stamped onto every analysis record. Held here rather than
+#' written as a literal at the point of use so that a plan amendment updates it
+#' in exactly one place and cannot leave a record claiming the wrong version.
+SAP_VERSION <- "1.1"
+
 #' Assemble the analysis dataset for one domain
 #'
 #' Joins the frozen endpoint to the arm each participant was allocated to. The
@@ -231,7 +238,7 @@ run_adaptive_analysis <- function(cut_id,
     ),
 
     specification = list(
-      sap_version = "1.1",
+      sap_version = SAP_VERSION,
       priors_version = priors$version,
       decision_rules_version = rules$version,
       priors_file_sha256 = file_sha256(project_path("config", "priors.yml")),
