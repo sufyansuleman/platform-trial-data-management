@@ -121,19 +121,6 @@ list(
 
   tar_target(cut_verification, verify_cut(demonstration_cut$cut_id)),
 
-  # -- Adaptive analysis ----------------------------------------------------
-  # Takes the cut ID and nothing else. Verifies the manifest before reading
-  # anything, and applies priors and thresholds pre-specified in config/ and
-  # committed before this code existed.
-  tar_target(adaptive_analysis, run_adaptive_analysis(demonstration_cut$cut_id)),
-  tar_target(analysis_summary, summarise_analysis(adaptive_analysis)),
-
-  # Does the decision survive the choice of prior? The headline is whether the
-  # DECISION changes, not what each posterior looks like.
-  tar_target(prior_sensitivity_table, prior_sensitivity(demonstration_cut$cut_id)),
-  tar_target(decision_robustness_table, decision_robustness(prior_sensitivity_table)),
-  tar_target(prior_predictive, prior_predictive_check(load_priors())),
-
   # -- Allocation reconciliation --------------------------------------------
   # Closes the loop between the analysis and the randomisation system. An
   # allocation update that fails to take effect at a site raises no error and
@@ -157,8 +144,9 @@ list(
   tar_target(all_findings, rbind(findings, allocation_deviation_findings)),
 
   tar_target(allocation_update, emit_allocation_update(
-    adaptive_analysis,
-    effective_date = as.Date(demonstration_cut$as_of_date) + 15
+    specified_allocation_table,
+    effective_date = attr(specified_allocation_table, "effective_date"),
+    source_id = "interim-analysis-2024-09"
   )),
 
   # -- Monitoring metrics ---------------------------------------------------

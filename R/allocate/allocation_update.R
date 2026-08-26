@@ -1,11 +1,12 @@
 # ---------------------------------------------------------------------------
 # Allocation updates and reconciliation.
 #
-# This closes the loop between the analysis and the randomisation system, and
-# it is the most under-appreciated failure mode in an adaptive platform trial.
+# This closes the loop between whatever decides allocation probabilities and
+# the randomisation system that has to apply them, which is the most
+# under-appreciated failure mode in an adaptive platform trial.
 #
-# When an interim analysis produces new allocation probabilities, they have to
-# reach the EDC and take effect there. If they do not, NOTHING ERRORS. No
+# When new allocation probabilities are decided, they have to reach the EDC and
+# take effect there. If they do not, NOTHING ERRORS. No
 # exception is raised, no validation rule fires, no report looks wrong. The
 # realised allocation at that site stays at whatever it was, which is a
 # perfectly plausible ratio, and participants are simply randomised on the
@@ -18,37 +19,40 @@
 
 #' Emit a versioned, checksummed allocation update
 #'
-#' Never a bare number for somebody to retype. The artefact carries the
-#' probabilities, the analysis they came from, the date they take effect, and a
-#' checksum over the content, so that the value which reached the randomisation
-#' system can be compared against the value that left the analysis.
+#' Models the artefact that has to travel from wherever allocation
+#' probabilities are decided to the randomisation system that applies them.
+#' This repository covers the data management side of the trial and does not
+#' implement the interim analysis itself, so the probabilities are an input:
+#' what matters here is that they arrive intact and can be checked afterwards
+#' against what the sites actually did.
 #'
-#' @param analysis_record Output of [run_adaptive_analysis()].
+#' Never a bare number for somebody to retype. The artefact carries the
+#' probabilities, the source they came from, the date they take effect, and a
+#' checksum over the content, so the value that reached the randomisation
+#' system can be compared against the value that left.
+#'
+#' @param allocation A data frame of `domain`, `arm`, `probability`.
 #' @param effective_date Date the new probabilities take effect.
+#' @param source_id Identifier of whatever decided them, recorded for audit.
 #' @param dir Directory to write updates into.
 #' @return The update, invisibly.
-emit_allocation_update <- function(analysis_record, effective_date,
+emit_allocation_update <- function(allocation, effective_date,
+                                   source_id = NA_character_,
                                    dir = project_path("data", "allocations")) {
+  stopifnot(all(c("domain", "arm", "probability") %in% names(allocation)))
   dir.create(dir, recursive = TRUE, showWarnings = FALSE)
 
-  domains <- lapply(names(analysis_record$domains), function(domain) {
-    result <- analysis_record$domains[[domain]]
+  domains <- lapply(split(allocation, allocation$domain), function(rows) {
     list(
-      domain = domain,
-      arms = result$arms,
-      allocation = list(
-        a = result$primary$allocation$a,
-        b = result$primary$allocation$b
-      ),
-      decision = result$primary$decision$decision
+      domain = rows$domain[1],
+      arms = rows$arm,
+      probabilities = rows$probability
     )
   })
-  names(domains) <- names(analysis_record$domains)
 
   update <- list(
     update_id = sprintf("ALU-%s", format(as.Date(effective_date), "%Y%m%d")),
-    analysis_id = analysis_record$analysis_id,
-    cut_id = analysis_record$cut$cut_id,
+    source_id = source_id,
     effective_date = format(as.Date(effective_date)),
     issued_at = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
     domains = domains

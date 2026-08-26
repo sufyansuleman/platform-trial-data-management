@@ -162,17 +162,9 @@ test_that("no deviations produce no findings, with the right columns", {
 # --- The update artefact ----------------------------------------------------
 
 test_that("an emitted allocation update carries a checksum that verifies", {
-  record <- list(
-    analysis_id = "ANA-TEST",
-    cut = list(cut_id = "CUT-TEST"),
-    domains = list(FLUID = list(
-      arms = c("liberal", "restrictive"),
-      primary = list(allocation = list(a = 0.6, b = 0.4),
-                     decision = list(decision = "continue"))
-    ))
-  )
   dir <- file.path(tempdir(), paste0("alloc-", as.integer(runif(1, 1, 1e9))))
-  update <- emit_allocation_update(record, as.Date("2025-06-01"), dir = dir)
+  update <- emit_allocation_update(specified_fixture(), as.Date("2025-06-01"),
+                                   source_id = "interim-test", dir = dir)
 
   expect_equal(update$update_id, "ALU-20250601")
   expect_equal(nchar(update$checksum), 64)
@@ -182,21 +174,13 @@ test_that("an emitted allocation update carries a checksum that verifies", {
 test_that("an altered allocation update fails its own checksum", {
   # Never a bare number for somebody to retype: the value that arrives must be
   # checkable against the value that left.
-  record <- list(
-    analysis_id = "ANA-TEST",
-    cut = list(cut_id = "CUT-TEST"),
-    domains = list(FLUID = list(
-      arms = c("liberal", "restrictive"),
-      primary = list(allocation = list(a = 0.6, b = 0.4),
-                     decision = list(decision = "continue"))
-    ))
-  )
   dir <- file.path(tempdir(), paste0("alloc-", as.integer(runif(1, 1, 1e9))))
-  update <- emit_allocation_update(record, as.Date("2025-06-01"), dir = dir)
+  update <- emit_allocation_update(specified_fixture(), as.Date("2025-06-01"),
+                                   source_id = "interim-test", dir = dir)
 
   path <- file.path(dir, paste0(update$update_id, ".json"))
   tampered <- jsonlite::read_json(path, simplifyVector = TRUE)
-  tampered$domains$FLUID$allocation$a <- 0.9
+  tampered$domains$FLUID$probabilities <- c(0.9, 0.1)
   jsonlite::write_json(tampered, path, auto_unbox = TRUE, pretty = TRUE, digits = NA)
 
   expect_error(read_allocation_update(update$update_id, dir),

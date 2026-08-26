@@ -785,3 +785,61 @@ there depends on accumulating more randomisations rather than on a better test.
 **Where it surfaces.** Deviations become `ALC-001` findings at `critical` severity, in the
 same findings table as everything else, so they travel to the reports through machinery
 that already exists rather than through a special case.
+
+---
+
+## 2026-08-26 - DEC-025: the Bayesian analysis layer is removed from scope
+
+**Decision.** This repository covers the **data management** side of the trial only. The
+statistical analysis plan, the interim analysis engine, the prior machinery and the design
+simulation are removed. The pipeline produces a frozen, verifiable data cut and stops
+there.
+
+**What was removed:** `R/analyse/`, `docs/statistical_analysis_plan.md`,
+`config/priors.yml`, `config/decision_rules.yml`, `config/prior_predictive_record.yml` and
+the 83 tests covering them. The work was implemented and working before it was removed; it
+is in the git history up to commit `0ccf9e9` for anyone who wants to read it.
+
+**What stayed, and why it is not analysis.** Two pieces sit close enough to the boundary to
+need stating:
+
+- **Data cuts.** Producing a dataset an analysis can run on, and proving that dataset can
+  be regenerated exactly a year later, is a data management responsibility. The cut is the
+  handover point, not the beginning of the analysis.
+- **Allocation reconciliation.** It appears twice in the specification, once as section 3.3
+  of Milestone 3 and once inside the analysis addendum. The question it answers is whether
+  the allocation that was *specified* actually took effect at each site. That is a question
+  about whether data capture did what it was told, and answering it requires no model, no
+  prior and no posterior.
+
+**Reasoning.** A complete, coherent project reads better than a larger incomplete one. The
+data management work here is finished to a standard: an ingest layer that fails loudly, a
+rule engine scored against known defects, an endpoint with forty tests and its
+completeness reported alongside it, cuts with a reproducibility proof, and monitoring
+reports that lead with what to do. Bolting on a half-built analysis layer would have
+weakened that rather than extended it, and a reader would reasonably ask which half was
+serious.
+
+**Consequences to be honest about.** Several entries above are now historical rather than
+operative, and are kept rather than deleted because a decision log that quietly removes its
+own mistakes is worthless:
+
+- **DEC-009** (conjugate models over Stan) and **DEC-019** (the normal approximation)
+  described a layer that no longer exists.
+- **DEC-020** (only the primary outcome may stop a domain) likewise.
+- **DEC-022 and DEC-022a** recorded a false positive found by that layer, and the finding
+  that the superiority threshold was never calibrated. The threshold is gone with the
+  layer, but the underlying observation stands and is worth keeping: a stopping rule
+  quoted as P > 0.99 is a false positive rate, not a guarantee, and this dataset produced
+  one.
+- **DEC-023a** built a gate refusing to analyse under priors with no recorded passing
+  predictive check. The gate is gone. **The pattern it demonstrated is retained elsewhere
+  and is the more durable lesson:** an obligation somebody is supposed to remember is not a
+  control. `verify_cut()` refusing to return data from an altered cut is the same idea, and
+  the transfer guard specified in the data management plan will be a third.
+
+**What the endpoint work is for now.** Days alive without life support remains the derived
+endpoint, with its forty tests and its completeness reporting. It is no longer computed in
+order to be analysed here; it is computed because deriving a trial's primary outcome
+correctly, and reporting how much of it rests on absent data, is a data management
+deliverable in its own right.

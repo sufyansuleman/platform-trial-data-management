@@ -8,7 +8,12 @@ multi-country, multi-domain adaptive platform trial.
 > from, or endorsed by any real clinical trial, hospital, or research group. No real
 > patient data is used or expected.
 
-**Status:** Milestone 1 complete.
+**Status:** Milestone 1 complete; data cuts and allocation reconciliation built.
+
+**Scope.** This is a **data management** project. It takes trial data from the messy
+export boundary to a frozen, verifiable dataset an analysis can be run on, and stops
+there. The statistical analysis itself is deliberately out of scope, and the data cut is
+the handover point.
 Full specification: [docs/BUILD_SPEC.md](docs/BUILD_SPEC.md)
 
 Built in R with [`targets`](https://books.ropensci.org/targets/), `testthat` and Quarto.
@@ -155,8 +160,9 @@ The function returns `unknown_days` and `complete` alongside the count, because:
 |---|---:|---:|
 | Mean days alive without life support | 16.18 | 14.55 |
 
-That 1.6-day gap is **wider than the 1-day margin** the analysis plan uses to declare two
-arms practically equivalent. A single confident-looking integer would have hidden it.
+That 1.6-day gap is wider than the margin an equivalence analysis would plausibly use to
+declare two arms clinically indistinguishable. A single confident-looking integer would
+have hidden it, and the difference is large enough to change a conclusion.
 
 ### The multi-country mess is real
 
@@ -183,6 +189,54 @@ slope to each site's median entry delay, measured against **its own initiation d
 rather than calendar time, identifies SE-02 at **1.69 days per month** against 0.18 for
 the next worst site. That is the injected D09 defect, found by the only method that can
 find it.
+
+### A cut can be regenerated and proven identical
+
+The pipeline's output is a **frozen data cut**: every participant who completed 30-day
+follow-up as of a stated date, while enrolment continues past them. Each cut carries a
+manifest recording its contents, the data quality at the moment of freezing, and the
+provenance needed to rebuild it - git commit, R and package versions, rule-set version,
+config hash, seed - plus a SHA-256 over every file, hashed from disk after writing rather
+than from the objects in memory, because the file is what a later reader verifies.
+
+> Given a cut ID, this repository regenerates the exact dataset a committee saw and proves
+> it identical. [The test that checks it](tests/testthat/test-cut-reproducibility.R) runs
+> on every commit.
+
+The same test file also asserts the guarantee is **falsifiable**: change one input and the
+hashes must diverge, or the comparison proves nothing. Tampering with a frozen file,
+deleting one, or adding one all break verification, and `read_cut()` refuses to return
+data from a cut that fails.
+
+Records with incomplete data are included in cuts, not excluded. Dropping them would
+select the analysis population on data quality, which correlates with site, which
+correlates with case mix ([DEC-017](docs/decisions.md)).
+
+### The quietest failure in an adaptive trial
+
+When allocation probabilities are updated, they have to reach the randomisation system and
+take effect. If they do not, **nothing errors**. No rule fires, no report looks wrong, and
+the site's realised split is a perfectly ordinary ratio. Participants are simply randomised
+on the wrong one until somebody notices.
+
+Defect D13 injects exactly that at one site, built so nothing else can catch it: the
+`allocation_ratio` field records the new ratio at the failing site too, because the
+specification was issued to everybody, so the records stay internally consistent and no
+validation rule has anything to object to.
+
+Reconciliation compares realised against specified, per site, by exact binomial test:
+
+| Site | n | Realised | Specified | p | Flagged |
+|---|---:|---:|---:|---:|---|
+| **DK-01** | 192 | 0.458 | 0.600 | 8.6e-05 | **yes** |
+| NL-03 | 69 | 0.710 | 0.600 | 0.066 | no |
+| DK-14 | 78 | 0.500 | 0.600 | 0.083 | no |
+
+One site of 25 flagged, and it is the injected one. Pooled across all sites the deviation
+would be diluted to nothing; per site per domain the trial is too small to separate it from
+noise. The grouping is a power decision, and the function refuses to pool domains that
+specify different probabilities rather than fitting a binomial test to a count that is not
+binomial.
 
 ## Reports
 
