@@ -21,13 +21,24 @@ permissions:
 
 jobs:
   pipeline:
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest. A CI image that changes underneath you
+    # is the same class of problem as an unpinned package version, and this
+    # repository's whole claim is that a result can be regenerated later.
+    runs-on: ubuntu-24.04
 
     env:
       # renv restores from the lockfile; GITHUB_PAT avoids rate limiting when
       # any package needs to be fetched from GitHub rather than CRAN.
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+
+      # `use-public-rspm` below sets options(repos) for the R session, but renv
+      # restores from the repositories recorded in renv.lock, which are
+      # cloud.r-project.org and therefore serve source tarballs on Linux. The
+      # result was that 58 of 102 packages were compiled on every run, which is
+      # how a missing libuv turned into a failed build. This override is the
+      # documented way to point renv itself at prebuilt Ubuntu binaries.
+      RENV_CONFIG_REPOS_OVERRIDE: https://packagemanager.posit.co/cran/__linux__/noble/latest
 
     steps:
       - uses: actions/checkout@v4
@@ -40,10 +51,20 @@ jobs:
           # every package compiles from source and the run takes an hour.
           use-public-rspm: true
 
-      - name: Install system dependencies for R packages
+      # With the binary repository above, nothing here should need to compile.
+      # These are the fallbacks for when Posit Package Manager has no binary for
+      # a pinned version and renv drops back to source: fs 2.x stopped vendoring
+      # libuv, and arrow needs cmake to build the Arrow C++ library. Cheap to
+      # install and they turn a hard failure into a slow success.
+      - name: Install system dependencies for source fallbacks
         run: |
           sudo apt-get update
-          sudo apt-get install -y libuv1-dev
+          sudo apt-get install -y libuv1-dev cmake libxml2-dev libglpk-dev
+
+      - name: Report where packages are coming from
+        run: |
+          Rscript -e 'message("renv repos override: ", Sys.getenv("RENV_CONFIG_REPOS_OVERRIDE"))'
+          Rscript -e 'print(getOption("repos"))'
 
       - name: Restore the R environment from renv.lock
         uses: r-lib/actions/setup-renv@v2

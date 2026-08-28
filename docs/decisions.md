@@ -952,3 +952,51 @@ decisions, priorities among the open scope, anything about the analysis, and acc
 infrastructure. Everything else being answered in the repository is the point. If an
 operational question is missing, the fix is to amend the runbook rather than answer it once
 in an email.
+
+---
+
+## 2026-08-28 - DEC-028: CI installs binaries, and the system libraries are a fallback
+
+**Decision.** The CI workflow sets `RENV_CONFIG_REPOS_OVERRIDE` to Posit Package Manager's
+prebuilt Ubuntu binary repository, pins the runner to `ubuntu-24.04` rather than
+`ubuntu-latest`, and installs `libuv1-dev`, `cmake`, `libxml2-dev` and `libglpk-dev` as
+fallbacks for the case where no binary exists for a pinned version.
+
+**What failed.** `renv::restore()` aborted with "Error installing package 'fs'". The cause
+is specific and not obvious: `fs` 2.1.0 stopped vendoring libuv the way the 1.x series did,
+and its DESCRIPTION now reads `SystemRequirements: libuv: libuv-devel (rpm) or libuv1-dev
+(deb). Alternatively to build the vendored libuv 'cmake' is required.` The runner had
+neither, so the compile failed.
+
+**What the failure actually revealed.** `fs` was being compiled at all. The workflow already
+set `use-public-rspm: true` precisely so that packages arrive as prebuilt binaries, and a
+binary install would never have gone near libuv. So the binaries were not reaching the
+restore: `use-public-rspm` sets `options(repos)` for the R session, but `renv` restores from
+the repositories recorded in `renv.lock`, which are `cloud.r-project.org` and serve source
+tarballs on Linux. 58 of the 102 pinned packages need compilation, so every run was building
+all of them.
+
+**Why fixing only the reported error would have been wrong.** `fs` was not the last wall.
+`arrow` 23.0.1.2 declares `C++20; cmake >= 3.26 (build-time)`, and built from source it
+compiles the Arrow C++ library, which takes twenty to forty minutes on a runner and fails
+readily. Behind that, `igraph` wants libxml2 and glpk. Treating each failure as it surfaced
+would have meant several more rounds of the same diagnosis, and would have left a CI run
+that compiled fifty-eight packages every time even once it passed.
+
+**Why the system libraries are still installed.** The override should mean nothing compiles,
+but Package Manager does not always have a binary for a very recently pinned version, and
+`renv` then falls back to source silently. The apt packages cost seconds and turn that
+fallback from a hard failure into a slow success. Belt and braces, deliberately.
+
+**Why the runner is pinned.** `ubuntu-latest` moves between major releases without warning,
+and the binary repository is keyed to a specific Ubuntu codename. An image that changes
+underneath you is the same class of problem as an unpinned package version, which this
+repository otherwise refuses to accept.
+
+**A diagnostic step is added** printing the override and the resolved repositories, so the
+next person to read a CI log can see immediately whether binaries were used rather than
+inferring it from the run time.
+
+**Credit.** The libuv diagnosis came from a GitHub Copilot pull request against this
+repository. It identified the proximate cause correctly. The wider point, that the source
+build should not have been happening in the first place, is the part worth recording.
