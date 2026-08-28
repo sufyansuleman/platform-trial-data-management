@@ -11,8 +11,8 @@ reasoning and the alternative that was rejected. Newest entries at the bottom.
 for reshaping). Used consistently; no `data.table` anywhere.
 
 **Reasoning.** The specification requires one or the other, consistently. This repository
-is written to be *read* - by a hiring panel, and notionally by a trial manager or
-clinician checking that a derived endpoint means what they think it means. `dplyr`'s
+is written to be *read* - by whoever maintains it next, and notionally by a trial
+manager or clinician checking that a derived endpoint means what they think it means. `dplyr`'s
 verb pipeline reads close to prose, which matters more here than throughput. The whole
 dataset is ~2,500 participants and well under a million rows, so `data.table`'s
 performance advantage is irrelevant at this scale.
@@ -889,3 +889,19 @@ specified one.
 **Consequence.** The empty `R/query/` directory is removed. An empty directory reads as an
 abandoned start; the DMP naming `R/query/` as the intended home reads as a boundary. The
 README's stale test count is corrected to 419.
+
+**What ships and what does not.** The two agent-facing specification files at the repository
+root are untracked. They duplicated `docs/BUILD_SPEC.md`, carried construction-time
+instructions that mean nothing to a reader (checkpoints, stop points, "do not begin
+Milestone 2 unprompted"), and specified in full detail an analysis layer that DEC-025
+removed. Handing somebody a specification for work that is neither present nor wanted is
+worse than handing them nothing.
+
+`docs/BUILD_SPEC.md` is kept, because the original requirement statement is genuinely
+useful to whoever maintains this, but it now opens with a banner saying plainly that it is a
+requirement statement and not a status report, and pointing at the data management plan for
+what actually exists. The framing language throughout it, and one line in this log, is
+changed: this repository described itself in several places as written for a hiring panel
+and for interview purposes. That was true of its origin and is not true of what it is now
+for. A document that tells its reader it exists to impress somebody else has told them not
+to rely on it.

@@ -17,7 +17,9 @@ is listed, with a stated design for each, at the end of the
 export boundary to a frozen, verifiable dataset an analysis can be run on, and stops
 there. The statistical analysis itself is deliberately out of scope, and the data cut is
 the handover point.
-Full specification: [docs/BUILD_SPEC.md](docs/BUILD_SPEC.md)
+What is built, and what is specified but not built, is stated section by section in the
+[data management plan](docs/data_management_plan.md). The original requirement statement is
+kept at [docs/BUILD_SPEC.md](docs/BUILD_SPEC.md) for the record; it is not a status report.
 
 Built in R with [`targets`](https://books.ropensci.org/targets/), `testthat` and Quarto.
 Data manipulation uses `dplyr` throughout ([DEC-001](docs/decisions.md)).

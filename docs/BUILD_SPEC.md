@@ -1,8 +1,26 @@
+# Build specification
+
+> **This is the original requirement statement, kept for the record. It is not a status
+> report.** Parts of it were built, parts were deliberately descoped, and parts remain
+> open. Do not read a section here as a description of what exists.
+>
+> For what is actually implemented, see the status markers on every section of
+> **[docs/data_management_plan.md](data_management_plan.md)**, and the open scope in
+> priority order at the end of it. In short: Milestone 1 and Milestone 2.2 are built,
+> Milestone 2.1, 2.3 and 3.1 are not, PART 1 of the addendum is written as a plan with its
+> code components unbuilt, and PART 2 was removed from scope entirely (see below and
+> DEC-025 in [docs/decisions.md](decisions.md)).
+>
+> The specification is also written as instructions to a builder, including checkpoints and
+> stop points that were meaningful during construction and are not now.
+
+---
+
 ## 0. What you are building and why
 
 Build a **reference data-management and central-monitoring pipeline for a multi-site, multi-country, multi-domain adaptive platform trial**, in R.
 
-This is a portfolio and demonstration project. It must run end to end on a laptop with no external services, using **entirely synthetic data that the pipeline itself generates**.
+This is a reference implementation. It must run end to end on a laptop with no external services, using **entirely synthetic data that the pipeline itself generates**.
 
 The design is informed by how large academic ICU platform trials are publicly described: many hospital sites across several countries, several clinical *domains* running simultaneously over a shared participant population, an electronic data capture (EDC) system feeding periodic exports, scheduled interim ("adaptive") analyses that require frozen data cuts, and central statistical monitoring of site data quality in place of visiting every site.
 
@@ -230,7 +248,7 @@ Design rule: **the actionable list comes first, the charts come second.** A moni
 - `testthat` covering: ingest conversions, every rule expression, the derived endpoint edge cases, cut reproducibility.
 - GitHub Actions on push: `renv::restore()` → run pipeline → run tests → render reports → **publish reports to GitHub Pages**.
 
-Publishing to Pages matters: it means anyone reading your CV can click a link and see the actual monitoring report. Make this work.
+Publishing to Pages matters: it means anyone reading the repository can click a link and see the actual monitoring report rather than take a screenshot's word for it. Make this work.
 
 ---
 
@@ -269,7 +287,7 @@ Then prove it: a test that regenerates a historical cut from the same inputs and
 
 Simulate successive EDC exports where **a value inside an already-frozen cut is later edited at the site**.
 
-Detect it. Report it. This is what an audit trail is for, and almost no portfolio project does it. A retrospective edit to locked data is a serious finding in a regulated trial — flag it as `critical` and surface it prominently in the central report.
+Detect it. Report it. This is what an audit trail is for, and almost nothing outside a regulated trial unit does it. A retrospective edit to locked data is a serious finding in a regulated trial — flag it as `critical` and surface it prominently in the central report.
 
 ---
 
@@ -299,22 +317,22 @@ This is a genuinely under-appreciated failure mode — nothing errors, patients 
 
 ---
 
-## 7. Documentation the agent must write
+## 7. Documentation to write
 
-- **README.md** — the disclaimer up top; what the project is; a diagram of the pipeline; the rule-recall table; link to the live reports on Pages; how to run it in three commands. Written for a hiring manager who will spend 90 seconds.
+- **README.md** — the disclaimer up top; what the project is; a diagram of the pipeline; the rule-recall table; link to the live reports on Pages; how to run it in three commands. Written for a reader who will spend 90 seconds before deciding whether to spend longer.
 - **docs/validation_plan.md** — SOP-style. Every rule, its rationale, its severity, and what happens when it fires.
 - **docs/data_cut_sop.md** — how a cut is produced, what the manifest contains, how to reproduce one.
-- **docs/decisions.md** — a dated log. Every non-obvious choice (how partial days are handled, what missing daily data means, why rules are YAML) with the reasoning. **This file is the single most valuable artefact in the repo for interview purposes** — it shows how you think, not just what you built.
+- **docs/decisions.md** — a dated log. Every non-obvious choice (how partial days are handled, what missing daily data means, why rules are YAML) with the reasoning. **This file is the single most valuable artefact in the repository** for anyone who has to maintain or extend the pipeline: it records why each thing is shaped the way it is, including the bugs found and what they taught.
 
 ---
 
-## 8. Working style for the agent
+## 8. Working style
 
-- Small, focused commits with clear messages. The commit history is part of the portfolio.
+- Small, focused commits with clear messages. The commit history should read as deliberate work.
 - Write the test before the function for anything in `R/derive/`.
 - No magic numbers in code — everything configurable goes in `config/`.
 - Every function gets a roxygen docstring stating what it does and what it assumes.
-- Prefer boring, readable code over clever code. This repo will be read by a hiring panel, not optimised for speed.
+- Prefer boring, readable code over clever code. This repository is optimised to be read, not to be fast.
 - After each milestone: stop, print the repo tree, run the tests, and summarise what is done and what is next.
 
 ## 9. Definition of done for Milestone 1
