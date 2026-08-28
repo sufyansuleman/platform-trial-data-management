@@ -9,6 +9,18 @@ supposed to do and what is not built. This document is how to operate it.
 
 ---
 
+## 0. Before you install anything
+
+The monitoring reports this pipeline produces are published at
+**<https://sufyansuleman.github.io/platform-trial-data-management/>**, rebuilt by CI from
+`main` on every push. You can read the central report and all 25 site reports there without
+cloning the repository or installing R, which is the fastest way to see what the pipeline is
+for before you start operating it.
+
+Start with the central monitoring report. It is the coordinating centre view: which sites
+need attention, how the validation rules actually perform against known defects, and what
+the ingest layer had to undo.
+
 ## 1. First hour: getting it running
 
 **You need R 4.4.0, Quarto, and on Windows the matching Rtools.** The R version is pinned in

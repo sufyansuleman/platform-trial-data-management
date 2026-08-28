@@ -298,6 +298,10 @@ count that is not binomial.
 
 ## Reports
 
+**[Read them here](https://sufyansuleman.github.io/platform-trial-data-management/)**, no
+installation required. The published site is built by CI from `main` on every push, so it
+is never a screenshot of something that used to be true.
+
 `scripts/render_reports.R` produces one report per site plus a central report for the
 coordinating centre. **The actionable list comes first and the charts come second**: a
 monitoring report is a work instruction, not a dashboard.
