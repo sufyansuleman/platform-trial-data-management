@@ -40,6 +40,11 @@ jobs:
           # every package compiles from source and the run takes an hour.
           use-public-rspm: true
 
+      - name: Install system dependencies for R packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libuv1-dev
+
       - name: Restore the R environment from renv.lock
         uses: r-lib/actions/setup-renv@v2
 
