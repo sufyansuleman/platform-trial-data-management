@@ -843,3 +843,49 @@ endpoint, with its forty tests and its completeness reporting. It is no longer c
 order to be analysed here; it is computed because deriving a trial's primary outcome
 correctly, and reporting how much of it rests on absent data, is a data management
 deliverable in its own right.
+
+---
+
+## 2026-08-28 - DEC-026: stop building features, write the handover instead
+
+**Decision.** The pipeline is handed over as it stands. No further modules are built. Two
+documents are written instead: `docs/data_management_plan.md`, the governing DMP with every
+section marked *implemented* or *specified, not implemented*, and `docs/adapting.md`, a
+guide to pointing the pipeline at a different trial.
+
+Specifically not built: query management (Milestone 2.1), post-lock change detection
+(Milestone 2.3), risk-based central monitoring (Milestone 3.1), SAE reconciliation, the
+cross-border transfer guard, roles, retention and site onboarding.
+
+**Reasoning.** Somebody has been hired to do this work. Building their scope for them is not
+a courtesy, it is a fait accompli. A half-built query lifecycle that has to be
+reverse-engineered before it can be replaced is worse for the person inheriting it than no
+query lifecycle and a written statement of what belongs there and why.
+
+What the project lacked was not another module. It was the document that says what this is,
+where its boundary falls, and where somebody else's work starts. The pipeline is coherent
+and finished at its own boundary: ingest, conform, validate, score recall, derive the
+endpoint, monitor drift, freeze a cut, prove it regenerates, reconcile allocation. Nothing
+in it is a stub. That is a deliverable. It was not previously legible as one.
+
+**The status markers are the point of the DMP.** A plan describing only the built parts
+would be a README. A plan describing everything without saying which parts exist would be a
+wish list. Marking each of the thirteen sections converts silent gaps into a stated scope
+with a design attached, which is the difference between an unfinished project and a
+specified one.
+
+**Rejected alternatives.**
+
+- *Build the remaining data management scope to completion.* Several more sessions, and it
+  occupies exactly the work somebody else was brought in for.
+- *A one-page handover note and nothing else.* Faster, and it would have left the strongest
+  transferable idea here undocumented. The recall loop, generating clean data, injecting
+  defects with ground truth, then scoring the rule set blind, is the part most worth
+  copying, and nothing outside the README explained how to reuse it.
+- *Build post-lock change detection first, since it is small.* Tempting, and it is named as
+  item 2 in the open scope for whoever wants it. Rejected on the same principle as above:
+  small is not the same as mine to take.
+
+**Consequence.** The empty `R/query/` directory is removed. An empty directory reads as an
+abandoned start; the DMP naming `R/query/` as the intended home reads as a boundary. The
+README's stale test count is corrected to 419.

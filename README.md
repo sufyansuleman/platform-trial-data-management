@@ -8,7 +8,10 @@ multi-country, multi-domain adaptive platform trial.
 > from, or endorsed by any real clinical trial, hospital, or research group. No real
 > patient data is used or expected.
 
-**Status:** Milestone 1 complete; data cuts and allocation reconciliation built.
+**Status:** Milestone 1 complete; data cuts and allocation reconciliation built. The
+built scope is finished at its own boundary and nothing in it is a stub. What is not built
+is listed, with a stated design for each, at the end of the
+[data management plan](docs/data_management_plan.md).
 
 **Scope.** This is a **data management** project. It takes trial data from the messy
 export boundary to a frozen, verifiable dataset an analysis can be run on, and stops
@@ -261,11 +264,17 @@ fields.
 | `R/derive/` | The primary endpoint |
 | `R/monitor/` | Monitoring metrics and drift detection |
 | `reports/` | Parameterised Quarto reports |
-| `tests/testthat/` | 363 tests |
+| `tests/testthat/` | 419 tests |
 | `docs/decisions.md` | Dated log of every non-obvious choice and its rationale |
 
 ## Documentation
 
+- **[docs/data_management_plan.md](docs/data_management_plan.md)** - the governing plan,
+  written the way a trial unit writes one. Thirteen sections, each marked *implemented* or
+  *specified, not implemented*, so the built and unbuilt parts are distinguishable rather
+  than blurred. Ends with the open scope in priority order.
+- **[docs/adapting.md](docs/adapting.md)** - how to point this at a different trial. Which
+  parts are configuration, which are infrastructure, and which do not generalise.
 - **[docs/decisions.md](docs/decisions.md)** - a dated log of every design judgement, with
   the reasoning and the alternative rejected. The most useful file in the repository for
   understanding how the thing was built, including the bugs found and what they taught.
@@ -275,6 +284,28 @@ fields.
   rationale, its severity, and what happens when it fires
 - [docs/data_cut_sop.md](docs/data_cut_sop.md) - how a frozen cut is produced, verified
   and reproduced
+
+## Adapting it to another trial
+
+Almost none of this code knows which trial it is running. The trial lives in four
+configuration surfaces; the machinery underneath does not mention a single clinical
+concept.
+
+| Replace | Keep |
+|---|---|
+| `config/trial.yml`, `config/schema/`, `config/rules/` | `R/validate/`, `R/ingest/`, `R/cut/` |
+| `R/simulate/` and `R/derive/` | `R/monitor/`, `R/allocate/` |
+
+The rule engine contains no clinical knowledge at all: rules are YAML expressions
+evaluated with the form's columns in scope, and the cross-form facts they need are
+precomputed as named columns so a rule reads as prose rather than as a join. Swapping the
+trial means rewriting configuration, not the engine.
+
+**[docs/adapting.md](docs/adapting.md)** walks through it: what changes, what does not, the
+one trap in the schema files, and an honest list of what does not generalise.
+
+If you run a trial with a data management problem shaped like this one, that document is
+the place the useful conversation starts.
 
 ## Licence
 
