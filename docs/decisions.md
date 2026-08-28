@@ -905,3 +905,50 @@ changed: this repository described itself in several places as written for a hir
 and for interview purposes. That was true of its origin and is not true of what it is now
 for. A document that tells its reader it exists to impress somebody else has told them not
 to rely on it.
+
+---
+
+## 2026-08-28 - DEC-027: a runbook, because the handover has to survive without me
+
+**Decision.** `docs/runbook.md` is written as the operational manual: environment setup, the
+routine cycle when an export arrives, what to look at first and in what order, how to add a
+rule or a field, what to do when ingest refuses a value, what not to do, and an explicit
+list of the few questions the documentation cannot answer.
+
+**Reasoning.** The test of a handover is not whether the recipient can read the code. It is
+whether they can run the thing on a Monday morning without asking anybody. Auditing the
+repository against that test found the documentation good at explaining *why* and silent on
+*how*, which is the wrong way round for somebody who has to operate it before they
+understand it.
+
+**The specific gap that mattered most.** `renv::restore()` on R 4.4 silently compiles
+`igraph` and `arrow` from source and takes about two hours, because CRAN no longer builds
+oldrel Windows binaries. This is recorded in DEC-003, but a newcomer runs the three commands
+in the README before reading a decision log, and what they see is an apparent hang on their
+first contact with the project. The knowledge existed and was in the wrong place. It is now
+in the README beside the command that triggers it, and again in the runbook, because the
+cost of repeating it is a paragraph and the cost of not repeating it is somebody's afternoon
+plus an email.
+
+**Two things the runbook states that are not obvious from the code.**
+
+- **Ingest failing loudly is correct behaviour, not a bug.** It is the first thing a new
+  operator will hit, and their instinct will be to make it stop. The runbook gives the
+  diagnostic order and ends with the rule that matters: if the values are wrong rather than
+  differently formatted, that is a query to the site, not a parser change. Widening a parser
+  to admit bad data destroys the only guarantee the ingest layer offers.
+- **The allocation failure gets its own section.** Every other problem in this pipeline
+  announces itself. That one produces no error, no finding and a plausible ratio, so an
+  operator who does not know to look for it will not find it by looking harder at anything
+  else.
+
+**Rejected alternative.** Fold the operational content into the README. Rejected because the
+README is read once in ninety seconds by somebody deciding whether to look further, and a
+runbook is read repeatedly by somebody with a specific problem. They have different readers
+and different failure modes.
+
+**Consequence.** Section 9 lists what genuinely requires a person: trial governance
+decisions, priorities among the open scope, anything about the analysis, and access or
+infrastructure. Everything else being answered in the repository is the point. If an
+operational question is missing, the fix is to amend the runbook rather than answer it once
+in an email.

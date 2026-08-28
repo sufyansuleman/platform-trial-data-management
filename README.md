@@ -62,6 +62,19 @@ Rscript -e 'targets::tar_make()'
 Rscript -e 'testthat::test_dir("tests/testthat")'
 ```
 
+> **On R 4.4, set the binary preference first.** CRAN classifies R 4.4 as oldrel and no
+> longer builds fresh Windows binaries for it, so a plain `renv::restore()` silently starts
+> compiling `igraph` and `arrow` from source and takes about two hours. It looks like a
+> hang; it is a compile.
+>
+> ```r
+> options(pkgType = "binary", install.packages.check.source = "no")
+> renv::restore()
+> ```
+>
+> Versions are pinned by `renv.lock` either way, so only the build time changes
+> ([DEC-003](docs/decisions.md)). Not needed on R 4.5 or later.
+
 Then, optionally, `Rscript scripts/render_reports.R` to build the reports into `_site/`.
 
 The pipeline takes about 15 seconds; the test suite about 30; a full render of all 26
@@ -271,6 +284,9 @@ fields.
 
 ## Documentation
 
+- **[docs/runbook.md](docs/runbook.md)** - the operational manual. Getting it running,
+  the routine cycle when an export arrives, what to look at first, how to add a rule or a
+  field, what to do when ingest refuses a value, and what not to do.
 - **[docs/data_management_plan.md](docs/data_management_plan.md)** - the governing plan,
   written the way a trial unit writes one. Thirteen sections, each marked *implemented* or
   *specified, not implemented*, so the built and unbuilt parts are distinguishable rather
