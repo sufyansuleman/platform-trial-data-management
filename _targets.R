@@ -104,9 +104,9 @@ list(
 
   # -- Data cut -------------------------------------------------------------
   # A frozen snapshot of everyone who has completed 30-day follow-up as of the
-  # cut date, while enrolment continues past them. The Bayesian analysis layer
-  # runs on this and never on live data: an analysis run twice on a database
-  # that sites are still editing can give two answers, and neither is wrong.
+  # cut date, while enrolment continues past them. An analysis runs on this and
+  # never on live data: an analysis run twice on a database that sites are still
+  # editing can give two answers, and neither is wrong.
   #
   # Built to the contract in docs/data_cut_sop.md.
   tar_target(cut_as_of_date, as.Date("2025-09-30")),
