@@ -1,0 +1,4 @@
+"record_id","participant_id","site_id","icu_day","record_date","alive","in_icu","mechanical_ventilation","vasopressors","renal_replacement","icu_location","heart_rate","temperature_c","entry_date","site_name"
+"DLY-0000006","P-000002","DK-01","0","25-01-2024","1","1","0","0","0","DK-01-ICU1","122","37.2","29-01-2024","Søndre Universitetshospital"
+"DLY-0000007","P-000002","DK-01","1","26-01-2024","1","1","1","0","0","DK-01-ICU1","94","37.6","29-01-2024","Søndre Universitetshospital"
+"DLY-0000008","P-000002","DK-01","2","27-01-2024","1","1","0","0","0","DK-01-ICU1","94","36.5","29-01-2024","Søndre Universitetshospital"

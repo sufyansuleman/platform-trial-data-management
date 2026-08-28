@@ -1,0 +1,14 @@
+# Randomisation form -- one record per participant per domain.
+form: randomisation
+grain: One row per participant per domain entered.
+key: [randomisation_id]
+columns:
+  - {name: randomisation_id, type: character, required: true, pattern: "^RND-[0-9]{6}$", description: Randomisation record identifier.}
+  - {name: participant_id,   type: character, required: true, pattern: "^P-[0-9]{6}$",   description: Participant randomised.}
+  - {name: site_id,          type: character, required: true, pattern: "^[A-Z]{2}-[0-9]{2}$", description: Randomising site.}
+  - {name: domain,           type: code,      required: true, allowed: [FLUID, ANTICOAG, BUFFER], description: Platform domain.}
+  - {name: arm,              type: character, required: true, description: Allocated arm within the domain.}
+  - {name: randomisation_datetime, type: datetime, required: true, description: Date and time of allocation.}
+  - {name: allocation_ratio, type: character, required: true, description: "Allocation ratio in force at the time, written as a:b."}
+  - {name: entry_date,       type: date,      required: true, description: Date the record was entered into the EDC.}
+  - {name: site_name, type: character, required: false, description: "Site label as exported by the site, denormalised. Subject to encoding damage."}

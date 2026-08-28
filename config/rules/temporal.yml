@@ -1,0 +1,71 @@
+# ---------------------------------------------------------------------------
+# Temporal rules: date sequencing.
+#
+# Dates are the most reliably wrong field in any clinical dataset, because they
+# are the only ones a human has to transcribe from memory rather than read off
+# a machine.
+# ---------------------------------------------------------------------------
+
+- id: TMP-001
+  name: discharge_not_before_admission
+  scope: outcome_30d
+  severity: critical
+  description: >
+    Hospital discharge must not precede ICU admission.
+  rationale: >
+    An impossible ordering means one of the two dates is wrong, and length of
+    stay derived from them is meaningless until the site says which.
+  expression: is.na(hospital_discharge_date) | hospital_discharge_date >= icu_admission_date
+  action: query
+
+- id: TMP-002
+  name: death_not_before_randomisation
+  scope: outcome_30d
+  severity: critical
+  description: >
+    Date of death must not precede the participant's first randomisation.
+  rationale: >
+    A death before allocation means the participant was never eligible to be
+    randomised, or the death date belongs to a different record. Either
+    invalidates the participant's contribution to the primary outcome.
+  expression: is.na(death_date) | death_date >= first_randomisation_date
+  action: escalate
+
+- id: TMP-003
+  name: entry_not_before_event
+  scope: [screening, randomisation, daily_icu, outcome_30d, adverse_events]
+  severity: major
+  description: >
+    A record cannot be entered into the EDC before the event it describes.
+  rationale: >
+    Entry before the event indicates a mistyped event date or a record
+    completed in advance. Records completed in advance are a documented route
+    to fabricated observations and must be queried, not silently accepted.
+  expression: entry_not_before_event
+  action: query
+
+- id: TMP-004
+  name: ae_onset_before_randomisation
+  scope: adverse_events
+  severity: critical
+  description: >
+    Adverse event onset must not precede the participant's first
+    randomisation datetime in any domain.
+  rationale: >
+    An AE preceding randomisation is not attributable to the trial
+    intervention and indicates a data entry or linkage error.
+  expression: onset_date >= first_randomisation_date
+  action: query
+
+- id: TMP-005
+  name: screening_not_after_randomisation
+  scope: randomisation
+  severity: major
+  description: >
+    Randomisation must not precede the screening assessment that established
+    eligibility.
+  rationale: >
+    Allocation before eligibility was confirmed is a protocol deviation as
+    well as a data problem, and is reportable as such.
+  expression: is.na(screening_date_for_participant) | as.Date(randomisation_datetime) >= screening_date_for_participant
+  action: escalate

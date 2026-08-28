@@ -8,6 +8,7 @@ renv/python/
 _targets/
 data/raw/*
 !data/raw/.gitkeep
+!data/raw/sample/
 data/interim/*
 !data/interim/.gitkeep
 data/cuts/*
@@ -16,7 +17,18 @@ data/cuts/*
 *_cache/
 .quarto/
 _site/
+build/
+# rendered reports are build output, never committed
+*.html
+reports/site_monitoring_*.qmd
 .DS_Store
 
 # local bootstrap scaffolding, not part of the specified repo structure
 setup_renv.R
+
+data/analyses/
+data/allocations/
+
+# original agent-facing specification, superseded by docs/BUILD_SPEC.md
+AGENT_START_HERE.md
+AGENT_ADDENDUM_dmp_and_analysis.md

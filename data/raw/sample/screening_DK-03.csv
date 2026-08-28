@@ -1,0 +1,4 @@
+"screening_id","participant_id","site_id","screening_date","age_years","sex","weight_kg","creatinine","severity_score","elig_icu","elig_consent","elig_no_exclusion","enrolled","entry_date","site_name"
+"SCR-000012","","DK-03","12-02-2024","45","F","67.0","80.0","5","0","1","1","0","19-02-2024","Nørrevang Hospital"
+"SCR-000015","P-000010","DK-03","20-02-2024","37","F","44.3","51.0","17","1","1","1","1","24-02-2024","Nørrevang Hospital"
+"SCR-000017","P-000012","DK-03","24-02-2024","53","M","76.7","52.0","23","1","1","","1","27-02-2024","Nørrevang Hospital"

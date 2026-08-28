@@ -1,0 +1,20 @@
+# Daily ICU form -- one record per participant per ICU day.
+form: daily_icu
+grain: One row per participant per ICU day, day 0 to day 90.
+key: [participant_id, icu_day]
+columns:
+  - {name: record_id,      type: character, required: true, pattern: "^DLY-[0-9]{7}$", description: Daily record identifier.}
+  - {name: participant_id, type: character, required: true, pattern: "^P-[0-9]{6}$",   description: Participant.}
+  - {name: site_id,        type: character, required: true, pattern: "^[A-Z]{2}-[0-9]{2}$", description: Site holding the participant on this day.}
+  - {name: icu_day,        type: integer,   required: true, min: 0, max: 90, description: Days since first randomisation.}
+  - {name: record_date,    type: date,      required: true, description: Calendar date the day refers to.}
+  - {name: alive,          type: code,      required: true, allowed: [0, 1], description: Alive at any point during this day.}
+  - {name: in_icu,         type: code,      required: true, allowed: [0, 1], description: Present in an ICU during this day.}
+  - {name: mechanical_ventilation, type: code, required: true, allowed: [0, 1], description: Invasive mechanical ventilation received.}
+  - {name: vasopressors,   type: code,      required: true, allowed: [0, 1], description: Vasopressor or inotropic support received.}
+  - {name: renal_replacement, type: code,   required: true, allowed: [0, 1], description: Renal replacement therapy received.}
+  - {name: icu_location,   type: character, required: false, pattern: "^[A-Z]{2}-[0-9]{2}-ICU[0-9]$", description: "ICU unit identifier, blank when not in ICU."}
+  - {name: heart_rate,     type: integer,   required: false, min: 20, max: 220, description: Heart rate in beats per minute.}
+  - {name: temperature_c,  type: number,    required: false, min: 30, max: 43,  description: Core temperature in Celsius.}
+  - {name: entry_date,     type: date,      required: true, description: Date the record was entered into the EDC.}
+  - {name: site_name, type: character, required: false, description: "Site label as exported by the site, denormalised. Subject to encoding damage."}

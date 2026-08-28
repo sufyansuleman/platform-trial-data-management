@@ -1,0 +1,20 @@
+# Screening form -- one record per screened patient.
+form: screening
+grain: One row per screened patient.
+key: [screening_id]
+columns:
+  - {name: screening_id,   type: character, required: true,  pattern: "^SCR-[0-9]{6}$", description: Screening record identifier.}
+  - {name: participant_id, type: character, required: false, pattern: "^P-[0-9]{6}$",   description: "Assigned only if the patient was enrolled, blank otherwise."}
+  - {name: site_id,        type: character, required: true,  pattern: "^[A-Z]{2}-[0-9]{2}$", description: Screening site.}
+  - {name: screening_date, type: date,      required: true,  description: Date of screening assessment.}
+  - {name: age_years,      type: integer,   required: true,  min: 18,  max: 120, description: Age at screening.}
+  - {name: sex,            type: code,      required: true,  allowed: [F, M],    description: Recorded sex.}
+  - {name: weight_kg,      type: number,    required: true,  min: 30,  max: 250, description: "Body weight, normalised to kg at ingest."}
+  - {name: creatinine,     type: number,    required: true,  min: 10,  max: 1200, description: "Serum creatinine, normalised to umol/L at ingest."}
+  - {name: severity_score, type: integer,   required: true,  min: 0,   max: 71,  description: Illness severity index at screening.}
+  - {name: elig_icu,       type: code,      required: true,  allowed: [0, 1], description: Meets ICU admission criterion.}
+  - {name: elig_consent,   type: code,      required: true,  allowed: [0, 1], description: Consent obtained.}
+  - {name: elig_no_exclusion, type: code,   required: true,  allowed: [0, 1], description: Free of all exclusion criteria.}
+  - {name: enrolled,       type: code,      required: true,  allowed: [0, 1], description: Proceeded to randomisation.}
+  - {name: entry_date,     type: date,      required: true,  description: Date the record was entered into the EDC.}
+  - {name: site_name, type: character, required: false, description: "Site label as exported by the site, denormalised. Subject to encoding damage."}

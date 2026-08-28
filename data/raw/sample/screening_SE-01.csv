@@ -1,0 +1,4 @@
+"screening_id","participant_id","site_id","screening_date","age_years","sex","weight_kg","creatinine","severity_score","elig_icu","elig_consent","elig_no_exclusion","enrolled","entry_date","site_name"
+"SCR-000962","P-000660","SE-01","2024-12-15","80","M","43.8","150.0","23","1","1","1","1","2024-12-19","Björkhagen Universitetssjukhus"
+"SCR-000963","P-000661","SE-01","2024-12-15","66","M","","170.0","25","1","1","1","1","2024-12-18","Björkhagen Universitetssjukhus"
+"SCR-001000","P-000688","SE-01","2024-12-23","41","M","50.9","66.0","16","1","1","1","1","2024-12-31","Björkhagen Universitetssjukhus"

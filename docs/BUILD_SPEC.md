@@ -1,8 +1,26 @@
+# Build specification
+
+> **This is the original requirement statement, kept for the record. It is not a status
+> report.** Parts of it were built, parts were deliberately descoped, and parts remain
+> open. Do not read a section here as a description of what exists.
+>
+> For what is actually implemented, see the status markers on every section of
+> **[docs/data_management_plan.md](data_management_plan.md)**, and the open scope in
+> priority order at the end of it. In short: Milestone 1 and Milestone 2.2 are built,
+> Milestone 2.1, 2.3 and 3.1 are not, PART 1 of the addendum is written as a plan with its
+> code components unbuilt, and PART 2 was removed from scope entirely (see below and
+> DEC-025 in [docs/decisions.md](decisions.md)).
+>
+> The specification is also written as instructions to a builder, including checkpoints and
+> stop points that were meaningful during construction and are not now.
+
+---
+
 ## 0. What you are building and why
 
 Build a **reference data-management and central-monitoring pipeline for a multi-site, multi-country, multi-domain adaptive platform trial**, in R.
 
-This is a portfolio and demonstration project. It must run end to end on a laptop with no external services, using **entirely synthetic data that the pipeline itself generates**.
+This is a reference implementation. It must run end to end on a laptop with no external services, using **entirely synthetic data that the pipeline itself generates**.
 
 The design is informed by how large academic ICU platform trials are publicly described: many hospital sites across several countries, several clinical *domains* running simultaneously over a shared participant population, an electronic data capture (EDC) system feeding periodic exports, scheduled interim ("adaptive") analyses that require frozen data cuts, and central statistical monitoring of site data quality in place of visiting every site.
 
@@ -230,7 +248,7 @@ Design rule: **the actionable list comes first, the charts come second.** A moni
 - `testthat` covering: ingest conversions, every rule expression, the derived endpoint edge cases, cut reproducibility.
 - GitHub Actions on push: `renv::restore()` → run pipeline → run tests → render reports → **publish reports to GitHub Pages**.
 
-Publishing to Pages matters: it means anyone reading your CV can click a link and see the actual monitoring report. Make this work.
+Publishing to Pages matters: it means anyone reading the repository can click a link and see the actual monitoring report rather than take a screenshot's word for it. Make this work.
 
 ---
 
@@ -269,7 +287,7 @@ Then prove it: a test that regenerates a historical cut from the same inputs and
 
 Simulate successive EDC exports where **a value inside an already-frozen cut is later edited at the site**.
 
-Detect it. Report it. This is what an audit trail is for, and almost no portfolio project does it. A retrospective edit to locked data is a serious finding in a regulated trial — flag it as `critical` and surface it prominently in the central report.
+Detect it. Report it. This is what an audit trail is for, and almost nothing outside a regulated trial unit does it. A retrospective edit to locked data is a serious finding in a regulated trial — flag it as `critical` and surface it prominently in the central report.
 
 ---
 
@@ -299,22 +317,22 @@ This is a genuinely under-appreciated failure mode — nothing errors, patients 
 
 ---
 
-## 7. Documentation the agent must write
+## 7. Documentation to write
 
-- **README.md** — the disclaimer up top; what the project is; a diagram of the pipeline; the rule-recall table; link to the live reports on Pages; how to run it in three commands. Written for a hiring manager who will spend 90 seconds.
+- **README.md** — the disclaimer up top; what the project is; a diagram of the pipeline; the rule-recall table; link to the live reports on Pages; how to run it in three commands. Written for a reader who will spend 90 seconds before deciding whether to spend longer.
 - **docs/validation_plan.md** — SOP-style. Every rule, its rationale, its severity, and what happens when it fires.
 - **docs/data_cut_sop.md** — how a cut is produced, what the manifest contains, how to reproduce one.
-- **docs/decisions.md** — a dated log. Every non-obvious choice (how partial days are handled, what missing daily data means, why rules are YAML) with the reasoning. **This file is the single most valuable artefact in the repo for interview purposes** — it shows how you think, not just what you built.
+- **docs/decisions.md** — a dated log. Every non-obvious choice (how partial days are handled, what missing daily data means, why rules are YAML) with the reasoning. **This file is the single most valuable artefact in the repository** for anyone who has to maintain or extend the pipeline: it records why each thing is shaped the way it is, including the bugs found and what they taught.
 
 ---
 
-## 8. Working style for the agent
+## 8. Working style
 
-- Small, focused commits with clear messages. The commit history is part of the portfolio.
+- Small, focused commits with clear messages. The commit history should read as deliberate work.
 - Write the test before the function for anything in `R/derive/`.
 - No magic numbers in code — everything configurable goes in `config/`.
 - Every function gets a roxygen docstring stating what it does and what it assumes.
-- Prefer boring, readable code over clever code. This repo will be read by a hiring panel, not optimised for speed.
+- Prefer boring, readable code over clever code. This repository is optimised to be read, not to be fast.
 - After each milestone: stop, print the repo tree, run the tests, and summarise what is done and what is next.
 
 ## 9. Definition of done for Milestone 1
@@ -328,3 +346,145 @@ Rscript -e 'testthat::test_dir("tests/testthat")'
 ```
 
 produces: synthetic data, a findings table, a recall report, derived endpoints, and 20+ rendered site reports plus one central report — with all tests passing, on a clean machine, in under five minutes.
+
+
+---
+
+# ADDENDUM to `docs/BUILD_SPEC.md`
+
+> Give this to the agent **after Milestone 1 is merged**. It adds two things:
+> Part 1 completes the data management plan; Part 2 adds the Bayesian adaptive
+> analysis layer. All hard constraints from section 0 of the original spec still apply —
+> synthetic data only, no real institution names, no claim of affiliation.
+>
+> Append this file to `docs/BUILD_SPEC.md` in the repo before starting work on it.
+
+---
+
+# PART 1 — Complete the data management plan (Milestone 3.5)
+
+The pipeline built in Milestones 1–3 handles data *processing* well. A real trial data
+management plan also covers governance, and the repository is currently silent on it.
+This part fixes that.
+
+## 1.1 Write the actual plan — `docs/data_management_plan.md`
+
+Produce a versioned, dated DMP document written the way a trial unit would write one, in
+these sections. This document is a deliverable in its own right, not a README section.
+
+1. **Scope and version control** — which trial, which domains, DMP version, effective date, change log at the bottom
+2. **Roles and responsibilities** — data manager, site investigator, trial registrar, monitor, statistician, sponsor. Who may do what to data.
+3. **Data flow** — a diagram (Mermaid, rendered in the doc) from bedside → EDC → export → pipeline → validated dataset → frozen cut → analysis → report
+4. **Data sources** — EDC forms, and where applicable external sources
+5. **Data dictionary reference** — link to `docs/data_dictionary.md`
+6. **Validation approach** — link to `docs/validation_plan.md`, with severity definitions and escalation
+7. **Query management** — how queries are raised, routed, escalated, closed; ageing thresholds that trigger escalation
+8. **Data cleaning cycles** — routine vs pre-analysis cleaning; what "clean for analysis" means
+9. **Database lock and data cuts** — link to `docs/data_cut_sop.md`
+10. **Data protection** — section 1.3 below
+11. **Retention and archiving** — section 1.5 below
+12. **Training and site onboarding** — section 1.6 below
+13. **Metrics** — the KPIs the data management function reports on itself
+
+## 1.2 SAE reconciliation (`R/reconcile/`)
+
+Real trials keep serious adverse events in **two places**: the clinical database (entered
+by sites on the AE form) and a separate safety/pharmacovigilance record (expedited
+reporting). These drift apart, and reconciling them is a core, recurring data management
+task.
+
+Implement:
+
+- Simulate a second `safety_db` export with deliberate discrepancies: SAEs present in one
+  source and not the other, mismatched onset dates, mismatched seriousness criteria,
+  differing outcome coding
+- `reconcile_sae()` produces a discrepancy table: `participant_id`, `sae_id`, `field`,
+  `clinical_value`, `safety_value`, `discrepancy_type`
+- Discrepancies feed the query system like any other finding, at `critical` severity
+- A reconciliation section in the central monitoring report
+
+Add a short paragraph to `docs/decisions.md` explaining why SAE reconciliation cannot be
+skipped even when both sources "look fine".
+
+## 1.3 Cross-border data protection (`docs/data_protection.md` + `config/countries.yml`)
+
+This is where multi-country actually bites, and it is currently missing entirely.
+
+Model in `config/countries.yml`, per country: legal basis for processing, whether the
+country is inside the EEA, whether an adequacy decision applies, the transfer mechanism
+required (none / SCCs / other), and the local data-protection contact role.
+
+Then implement:
+
+- A **transfer register**: every dataset movement recorded with source country,
+  destination, legal basis, and date
+- A pipeline **guard** that refuses to include a site's data in a pooled dataset unless
+  that country has an active, non-expired transfer basis recorded in config. Fail loudly.
+- At least one country in the config that is **outside the EEA with no adequacy decision**,
+  requiring standard contractual clauses — so the guard has something real to do
+- Pseudonymisation documented: participant IDs are trial-generated, no national
+  identifiers anywhere, no free text, no dates of birth (age in years only)
+
+In `docs/data_protection.md`, explain in plain language why the guard exists: it converts
+a compliance obligation into a pipeline behaviour, so a new country cannot be silently
+pooled before its paperwork is done.
+
+## 1.4 Role-based access and notification routing (`config/roles.yml`)
+
+Model the EDC role structure: `site_investigator`, `trial_registrar`, `research_nurse`,
+`monitor`, `data_manager`, `statistician`. For each role define: which forms are readable,
+which are writable, and which notification classes are received (queries, technical
+notices, safety alerts).
+
+Then implement a check that flags **over-assignment** — sites where an unusually high
+proportion of users hold a notification-bearing role. Over-assignment causes notification
+fatigue, which causes queries to be ignored, which is a data quality problem with a
+non-technical cause. Surface it in the central report.
+
+## 1.5 Retention, archiving and backup (`docs/retention.md` + `R/archive/`)
+
+- Define retention periods per artefact class (raw exports, frozen cuts, analysis outputs,
+  logs) in `config/retention.yml`
+- `create_archive_bundle(cut_id)` produces a self-contained, checksummed archive of a cut:
+  data, manifest, rule-set version, code commit SHA, rendered reports, and a plain-text
+  README explaining how to reproduce it without this repository
+- A test that verifies the bundle is complete and its checksums verify
+
+## 1.6 Site onboarding (`docs/site_onboarding.md` + `R/onboarding/`)
+
+A checklist-driven onboarding record per site: initiation date, training completed,
+roles assigned, test data submitted and cleared, transfer basis in place.
+
+Implement `check_site_readiness(site_id)` returning a pass/fail per criterion, and make
+the pipeline **exclude** data from sites not marked ready. Report exclusions explicitly —
+silent exclusion is worse than the problem it solves.
+
+> ### ⏸ CHECKPOINT — Part 1 complete
+> Show me `docs/data_management_plan.md` rendered, the SAE discrepancy table, and the
+> transfer guard rejecting a country with no valid basis. Open a PR. Wait.
+
+---
+
+# PART 2 - Bayesian adaptive analysis layer: OUT OF SCOPE
+
+This project covers the **data management** side of the trial only. The Bayesian
+adaptive analysis layer originally specified here has been removed from scope: the
+statistical analysis plan, the interim analysis engine, the prior machinery and the
+design simulation.
+
+What that boundary means in practice, and why it is a real boundary rather than an
+omission:
+
+- The pipeline produces a **frozen, verifiable data cut** and stops there. Section 2.2 of
+  Milestone 2 remains fully in scope, because producing a dataset an analysis can be run
+  on, and proving it can be regenerated exactly, is a data management responsibility.
+- **Allocation reconciliation remains in scope.** It appears in this specification twice:
+  once as section 3.3 of Milestone 3, which is data management, and once inside the
+  analysis addendum. The data management question is whether the allocation probabilities
+  that were specified actually took effect at each site, and answering it requires no
+  analysis at all.
+- The analysis layer is not stubbed or half-built. It was implemented and then removed, so
+  that what remains reads as a complete data management project rather than an incomplete
+  larger one. The work is in the git history up to commit 0ccf9e9 for anyone who wants it.
+
+PART 1 above, the data management plan, remains fully in scope.

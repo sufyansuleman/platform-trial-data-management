@@ -1,0 +1,14 @@
+# Adverse event form -- zero to many records per participant.
+form: adverse_events
+grain: Zero or more rows per participant.
+key: [ae_id]
+columns:
+  - {name: ae_id,          type: character, required: true, pattern: "^AE-[0-9]{6}$", description: Adverse event identifier.}
+  - {name: participant_id, type: character, required: true, pattern: "^P-[0-9]{6}$", description: Participant.}
+  - {name: site_id,        type: character, required: true, pattern: "^[A-Z]{2}-[0-9]{2}$", description: Reporting site.}
+  - {name: ae_code,        type: code,      required: true, allowed: [AE-BLEED, AE-THROMB, AE-INFECT, AE-ARRHY, AE-AKI, AE-HYPOT, AE-ALLERG, AE-PNEU, AE-DELIR, AE-HYPER], description: Coded adverse event term. No free text by design.}
+  - {name: onset_date,     type: date,      required: true, description: Date of adverse event onset.}
+  - {name: serious,        type: code,      required: true, allowed: [0, 1], description: Meets seriousness criteria.}
+  - {name: related,        type: code,      required: true, allowed: [0, 1, 2], description: "Relatedness to trial intervention, 0 not related 1 possibly 2 probably."}
+  - {name: entry_date,     type: date,      required: true, description: Date the record was entered into the EDC.}
+  - {name: site_name, type: character, required: false, description: "Site label as exported by the site, denormalised. Subject to encoding damage."}

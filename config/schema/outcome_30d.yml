@@ -1,0 +1,14 @@
+# 30-day outcome form -- one record per participant per domain.
+form: outcome_30d
+grain: One row per participant per domain.
+key: [participant_id, domain]
+columns:
+  - {name: participant_id, type: character, required: true, pattern: "^P-[0-9]{6}$", description: Participant.}
+  - {name: domain,         type: code,      required: true, allowed: [FLUID, ANTICOAG, BUFFER], description: Domain this outcome belongs to.}
+  - {name: site_id,        type: character, required: true, pattern: "^[A-Z]{2}-[0-9]{2}$", description: Reporting site.}
+  - {name: vital_status_30d, type: code,    required: true, allowed: [alive, dead, unknown], description: Vital status 30 days after randomisation in this domain.}
+  - {name: death_date,     type: date,      required: false, description: "Date of death, blank if alive at 30 days."}
+  - {name: icu_admission_date, type: date,  required: true,  description: First ICU admission date.}
+  - {name: hospital_discharge_date, type: date, required: false, description: "Hospital discharge date, blank if still admitted or died."}
+  - {name: entry_date,     type: date,      required: true, description: Date the record was entered into the EDC.}
+  - {name: site_name, type: character, required: false, description: "Site label as exported by the site, denormalised. Subject to encoding damage."}
