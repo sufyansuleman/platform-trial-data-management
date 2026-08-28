@@ -151,8 +151,8 @@ index <- sprintf('<!doctype html>
 </head>
 <body>
 <h1>Platform trial data monitoring</h1>
-<p class="sub">Synthetic Adaptive Platform Trial in Critical Illness &mdash;
-generated %s from rule set %s</p>
+<p class="sub">Synthetic Adaptive Platform Trial in Critical Illness.
+Generated %s from rule set %s.</p>
 
 <div class="warn">
 <strong>All data here is synthetic</strong>, generated from a fixed seed by the code in
@@ -160,10 +160,18 @@ this repository. Site names are invented. This is an independent educational pro
 with no affiliation to any real trial, hospital or research group.
 </div>
 
-<p><a href="central_monitoring.html"><strong>Central monitoring report</strong></a>
-&mdash; the coordinating centre view: which sites need attention, how well the
+<p>These are the output of a data management pipeline for a multi-site, multi-country,
+multi-domain adaptive platform trial: 25 sites across 5 countries, 3 clinical domains
+running over a shared participant population. The pipeline takes nightly EDC exports in
+five local formats, conforms them, validates them against a rule set held as
+configuration rather than code, derives the primary endpoint, and freezes verifiable data
+cuts. It scores its own validation rules against deliberately injected defects, so the
+detection rates below are measured rather than asserted.</p>
+
+<p><a href="central_monitoring.html"><strong>Central monitoring report</strong></a>.
+The coordinating centre view: which sites need attention, how well the
 validation rules actually perform against known defects, and what the ingest
-layer had to undo.</p>
+layer had to undo. <strong>Start here.</strong></p>
 
 <h2>Site reports</h2>
 <p>One per site. Each opens with the actions for that site this week; the charts
